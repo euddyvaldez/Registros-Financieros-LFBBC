@@ -139,9 +139,9 @@ let newRecordDescripcion: string = '';
 let newRecordMonto: string = '';
 
 // For record form - new selection mechanism
-let newRecordIntegranteSearchText: string = ''; 
-let newRecordIntegranteSelectedName: string = ''; 
-let newRecordRazonSearchText: string = '';       
+let newRecordIntegranteSearchText: string = '';
+let newRecordIntegranteSelectedName: string = '';
+let newRecordRazonSearchText: string = '';
 let newRecordRazonSelectedDescripcion: string = '';
 
 let focusTargetId: string | null = null;
@@ -152,6 +152,20 @@ let dashboardViewType: DashboardViewType = 'monthly_trend';
 let dashboardSelectedYear: number | 'all_available' = 'all_available';
 let dashboardSelectedMonth: number = new Date().getMonth() + 1; // 1-12, used for daily_trend
 
+// --- Financial Quotes State ---
+let currentQuoteIndex = 0;
+let quoteIntervalId: number | null = null;
+const financialQuotes = [
+    { text: "No ahorres lo que te queda después de gastar, gasta lo que te queda después de ahorrar.", author: "Warren Buffett" },
+    { text: "El dinero es un amo terrible pero un excelente sirviente.", author: "P.T. Barnum" },
+    { text: "La inversión en conocimiento paga el mejor interés.", author: "Benjamin Franklin" },
+    { text: "Cuida de los pequeños gastos; un pequeño agujero hunde un barco.", author: "Benjamin Franklin" },
+    { text: "Demasiadas personas gastan dinero que no han ganado, para comprar cosas que no quieren, para impresionar a personas que no les caen bien.", author: "Will Rogers" },
+    { text: "La regla No. 1 es no perder dinero. La regla No. 2 es no olvidar la Regla No. 1.", author: "Warren Buffett"},
+    { text: "Una finanza personal sana empieza por gastar menos de lo que ganas.", author: "Anónimo"},
+    { text: "El presupuesto es decirle a tu dinero a dónde ir, en lugar de preguntarte a dónde se fue.", author: "Dave Ramsey"}
+];
+
 
 // --- End Financial Records State ---
 
@@ -160,7 +174,7 @@ let currentView = 'dashboard'; // 'dashboard', 'financial_panel', 'records', 'ra
 const appRoot = document.getElementById('app');
 const RAZON_SEARCH_INPUT_ID = 'razon-search-input-field';
 const INTEGRANTE_SEARCH_INPUT_ID = 'integrante-search-input-field';
-const CSV_FILE_INPUT_ID = 'csv-file-input'; 
+const CSV_FILE_INPUT_ID = 'csv-file-input';
 const RAZON_CSV_FILE_INPUT_ID = 'razon-csv-file-input';
 const INTEGRANTE_CSV_FILE_INPUT_ID = 'integrante-csv-file-input';
 
@@ -245,7 +259,23 @@ function renderApp(): void {
         console.error('App root not found');
         return;
     }
-    appRoot.innerHTML = ''; 
+    appRoot.innerHTML = '';
+
+    const appHeaderDiv = document.createElement('div');
+    appHeaderDiv.className = 'app-global-header';
+
+    const logoImg = document.createElement('img');
+    logoImg.src = 'los forasteros-03.png';
+    logoImg.alt = 'LFBBC Logo';
+    logoImg.className = 'app-global-logo';
+    appHeaderDiv.appendChild(logoImg);
+
+    const appTitleSpan = document.createElement('span');
+    appTitleSpan.className = 'app-global-title';
+    appTitleSpan.textContent = 'Registros Financieros LFBBC';
+    appHeaderDiv.appendChild(appTitleSpan);
+
+    appRoot.appendChild(appHeaderDiv);
 
     const mainContentElement = document.createElement('div');
     mainContentElement.id = 'main-content-area';
@@ -268,7 +298,7 @@ function renderApp(): void {
     if (focusTargetId) {
         const elementToFocus = document.getElementById(focusTargetId);
         if (elementToFocus instanceof HTMLInputElement || elementToFocus instanceof HTMLTextAreaElement || elementToFocus instanceof HTMLSelectElement) {
-            requestAnimationFrame(() => { 
+            requestAnimationFrame(() => {
                 elementToFocus.focus();
                 if (elementToFocus instanceof HTMLInputElement && typeof elementToFocus.value === 'string') {
                     try {
@@ -277,7 +307,7 @@ function renderApp(): void {
                 }
             });
         }
-        focusTargetId = null; 
+        focusTargetId = null;
     }
 }
 
@@ -309,6 +339,10 @@ function renderBottomNavigation(parentElement: HTMLElement): void {
         `;
 
         navItem.onclick = () => {
+            if (currentView === 'dashboard' && item.view !== 'dashboard' && quoteIntervalId) {
+                clearInterval(quoteIntervalId);
+                quoteIntervalId = null;
+            }
             if (currentView === 'razones' && item.view !== 'razones') {
                 editingReasonId = null;
                 razonesSearchTerm = '';
@@ -349,14 +383,14 @@ function getAvailableYearsForFilter(records: FinancialRecord[]): (number | 'all_
 const MONTH_NAMES_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 interface ProcessedChartDataPoint {
-    label: string; 
+    label: string;
     ingresos: number;
     gastos: number; // For chart, this will be Math.abs(gastos)
     inversion: number; // For chart, this will be Math.abs(inversion)
 }
 
 function getProcessedChartData(): ProcessedChartDataPoint[] {
-    let recordsToProcess = financialRecords; 
+    let recordsToProcess = financialRecords;
 
     if (dashboardViewType === 'annual_summary') {
         const yearlyData: { [year: number]: ProcessedChartDataPoint } = {};
@@ -366,7 +400,7 @@ function getProcessedChartData(): ProcessedChartDataPoint[] {
                 yearlyData[year] = { label: String(year), ingresos: 0, gastos: 0, inversion: 0 };
             }
             if (r.movimiento === 'INGRESOS') yearlyData[year].ingresos += r.monto;
-            else if (r.movimiento === 'GASTOS') yearlyData[year].gastos += Math.abs(r.monto); 
+            else if (r.movimiento === 'GASTOS') yearlyData[year].gastos += Math.abs(r.monto);
             else if (r.movimiento === 'INVERSION') yearlyData[year].inversion += Math.abs(r.monto);
         });
         return Object.values(yearlyData).sort((a,b) => parseInt(a.label) - parseInt(b.label));
@@ -379,31 +413,31 @@ function getProcessedChartData(): ProcessedChartDataPoint[] {
 
     if (dashboardViewType === 'monthly_trend') {
         const monthlyData: { [month: number]: ProcessedChartDataPoint } = {};
-         for (let i = 0; i < 12; i++) { 
+         for (let i = 0; i < 12; i++) {
             monthlyData[i] = { label: MONTH_NAMES_ES[i], ingresos: 0, gastos: 0, inversion: 0 };
         }
 
         recordsToProcess.forEach(r => {
             const recordDate = new Date(r.fecha);
             const recordYear = recordDate.getFullYear();
-            const recordMonth = recordDate.getMonth(); 
+            const recordMonth = recordDate.getMonth();
 
-            if (yearToFilter === null || recordYear === yearToFilter) { 
+            if (yearToFilter === null || recordYear === yearToFilter) {
                 if (r.movimiento === 'INGRESOS') monthlyData[recordMonth].ingresos += r.monto;
-                else if (r.movimiento === 'GASTOS') monthlyData[recordMonth].gastos += Math.abs(r.monto); 
+                else if (r.movimiento === 'GASTOS') monthlyData[recordMonth].gastos += Math.abs(r.monto);
                 else if (r.movimiento === 'INVERSION') monthlyData[recordMonth].inversion += Math.abs(r.monto);
             }
         });
-        return Object.values(monthlyData); 
+        return Object.values(monthlyData);
     }
 
     if (dashboardViewType === 'daily_trend') {
-        if (yearToFilter === null) { 
+        if (yearToFilter === null) {
             console.warn("Daily trend attempted without a specific year. Defaulting to current year.");
-            yearToFilter = new Date().getFullYear(); 
+            yearToFilter = new Date().getFullYear();
         }
-        
-        const daysInMonth = new Date(yearToFilter, dashboardSelectedMonth, 0).getDate(); 
+
+        const daysInMonth = new Date(yearToFilter, dashboardSelectedMonth, 0).getDate();
         const dailyData: { [day: number]: ProcessedChartDataPoint } = {};
         for (let i = 1; i <= daysInMonth; i++) {
             dailyData[i] = { label: String(i), ingresos: 0, gastos: 0, inversion: 0 };
@@ -414,7 +448,7 @@ function getProcessedChartData(): ProcessedChartDataPoint[] {
             if (recordDate.getFullYear() === yearToFilter && (recordDate.getMonth() + 1) === dashboardSelectedMonth) {
                 const day = recordDate.getDate();
                 if (r.movimiento === 'INGRESOS') dailyData[day].ingresos += r.monto;
-                else if (r.movimiento === 'GASTOS') dailyData[day].gastos += Math.abs(r.monto); 
+                else if (r.movimiento === 'GASTOS') dailyData[day].gastos += Math.abs(r.monto);
                 else if (r.movimiento === 'INVERSION') dailyData[day].inversion += Math.abs(r.monto);
             }
         });
@@ -425,7 +459,7 @@ function getProcessedChartData(): ProcessedChartDataPoint[] {
 
 
 function renderTrendChartSVG(parentElement: HTMLElement, data: ProcessedChartDataPoint[]): void {
-    parentElement.innerHTML = ''; 
+    parentElement.innerHTML = '';
 
     if (data.length === 0) {
         const noDataMsg = document.createElement('p');
@@ -439,15 +473,15 @@ function renderTrendChartSVG(parentElement: HTMLElement, data: ProcessedChartDat
     const svg = document.createElementNS(svgNS, 'svg');
     const chartWidth = 380;
     const chartHeight = 250;
-    const margin = { top: 20, right: 20, bottom: 50, left: 70 }; 
+    const margin = { top: 20, right: 20, bottom: 50, left: 70 };
     const graphWidth = chartWidth - margin.left - margin.right;
     const graphHeight = chartHeight - margin.top - margin.bottom;
 
     svg.setAttribute('viewBox', `0 0 ${chartWidth} ${chartHeight}`);
     svg.classList.add('trend-chart-svg');
 
-    const maxValue = Math.max(10, ...data.flatMap(d => [d.ingresos, d.gastos, d.inversion])); 
-    
+    const maxValue = Math.max(10, ...data.flatMap(d => [d.ingresos, d.gastos, d.inversion]));
+
     const xScale = (index: number) => margin.left + (index / (data.length -1 || 1)) * graphWidth;
     const yScale = (value: number) => margin.top + graphHeight - (value / maxValue) * graphHeight;
 
@@ -468,7 +502,7 @@ function renderTrendChartSVG(parentElement: HTMLElement, data: ProcessedChartDat
     svg.appendChild(yAxis);
 
     data.forEach((d, i) => {
-        if (data.length > 15 && i % Math.floor(data.length / (data.length > 30 ? 7 : 5)) !== 0 && i !== data.length -1 && i !== 0) return; 
+        if (data.length > 15 && i % Math.floor(data.length / (data.length > 30 ? 7 : 5)) !== 0 && i !== data.length -1 && i !== 0) return;
         const label = document.createElementNS(svgNS, 'text');
         label.setAttribute('x', String(xScale(i)));
         label.setAttribute('y', String(margin.top + graphHeight + 20));
@@ -476,7 +510,7 @@ function renderTrendChartSVG(parentElement: HTMLElement, data: ProcessedChartDat
         label.classList.add('chart-label', 'x-axis-label');
         svg.appendChild(label);
     });
-    
+
     const yTicks = 5;
     for(let i = 0; i <= yTicks; i++) {
         const val = (maxValue / yTicks) * i;
@@ -491,7 +525,7 @@ function renderTrendChartSVG(parentElement: HTMLElement, data: ProcessedChartDat
 
         const label = document.createElementNS(svgNS, 'text');
         label.setAttribute('x', String(margin.left - 10));
-        label.setAttribute('y', String(yPos + 4)); 
+        label.setAttribute('y', String(yPos + 4));
         label.textContent = `RD$${val.toLocaleString('es-DO', {maximumFractionDigits: 0})}`;
         label.classList.add('chart-label', 'y-axis-label');
         svg.appendChild(label);
@@ -499,10 +533,10 @@ function renderTrendChartSVG(parentElement: HTMLElement, data: ProcessedChartDat
 
     const lineColors = { ingresos: '#4CAF50', gastos: '#FF3B30', inversion: '#007AFF' };
     (['ingresos', 'gastos', 'inversion'] as const).forEach(type => {
-        if (data.every(d => d[type] === 0 && d[type] === 0)) return; 
+        if (data.every(d => d[type] === 0 && d[type] === 0)) return;
 
         const path = document.createElementNS(svgNS, 'path');
-        const dAttr = data.map((d, i) => 
+        const dAttr = data.map((d, i) =>
             `${i === 0 ? 'M' : 'L'} ${xScale(i)} ${yScale(d[type])}`
         ).join(' ');
         path.setAttribute('d', dAttr);
@@ -536,7 +570,7 @@ function renderTrendChartSVG(parentElement: HTMLElement, data: ProcessedChartDat
         legendItem.appendChild(text);
         legendContainer.appendChild(legendItem);
     });
-    
+
     parentElement.appendChild(svg);
     parentElement.appendChild(legendContainer);
 }
@@ -545,81 +579,109 @@ function renderTrendChartSVG(parentElement: HTMLElement, data: ProcessedChartDat
 function renderSummaryCardComponent(title: string, value: number, currencySymbol: string, colorClass: string): HTMLDivElement {
     const card = document.createElement('div');
     card.className = `summary-card ${colorClass}`;
-    
+
     const titleEl = document.createElement('h3');
     titleEl.textContent = title;
-    
+
     const valueEl = document.createElement('p');
     valueEl.textContent = `${currencySymbol}${value.toLocaleString('es-DO', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    
+
     card.appendChild(titleEl);
     card.appendChild(valueEl);
-    
+
     return card;
 }
 
 
 function renderDashboardScreen(parentElement: HTMLElement): void {
-    const header = document.createElement('h1');
-    header.className = 'main-header-title';
-    header.textContent = 'Registros Financieros LFBBC';
-    parentElement.appendChild(header);
+    parentElement.innerHTML = '';
 
-    const dashboardMenu = document.createElement('div');
-    dashboardMenu.className = 'dashboard-menu';
+    parentElement.style.backgroundImage = "url('los forasteros-01.png')";
+    parentElement.style.backgroundRepeat = "no-repeat";
+    parentElement.style.backgroundPosition = "center center";
+    parentElement.style.backgroundSize = "cover";
+    // parentElement.style.height = "100%"; // Removed this line
+    parentElement.style.display = 'flex';
+    parentElement.style.flexDirection = 'column';
+    parentElement.style.justifyContent = 'center';
+    parentElement.style.alignItems = 'center';
+    parentElement.style.textAlign = 'center';
+    parentElement.style.gap = '20px'; 
 
-    const menuItems = [
-        { text: 'REGISTROS FINANCIEROS', view: 'records', icon: ICONS.list },
-        { text: 'INTEGRANTES', view: 'integrantes', icon: ICONS.people },
-        { text: 'RAZONES', view: 'razones', icon: ICONS.list } 
-    ];
+    let totalIngresos = 0;
+    let totalGastosSum = 0;
+    let totalInversionSum = 0;
 
-    menuItems.forEach(item => {
-        const button = document.createElement('button');
-        button.className = 'menu-button';
-        
-        const iconSpan = document.createElement('span');
-        iconSpan.className = 'menu-button-icon';
-        iconSpan.innerHTML = item.icon; // Assuming icons are simple SVGs for now
-        
-        const textSpan = document.createElement('span');
-        textSpan.textContent = item.text;
-        
-        button.appendChild(iconSpan);
-        button.appendChild(textSpan);
-        
-        button.onclick = () => {
-            currentView = item.view;
-            renderApp();
-        };
-        dashboardMenu.appendChild(button);
+    financialRecords.forEach(r => {
+        if (r.movimiento === 'INGRESOS') {
+            totalIngresos += r.monto;
+        } else if (r.movimiento === 'GASTOS') {
+            totalGastosSum += r.monto;
+        } else if (r.movimiento === 'INVERSION') {
+            totalInversionSum += r.monto;
+        }
     });
-    parentElement.appendChild(dashboardMenu);
 
-    const addRecordButtonDashboard = document.createElement('button');
-    addRecordButtonDashboard.className = 'add-record-button-dashboard primary-button';
-    addRecordButtonDashboard.textContent = 'Agregar Nuevo Registro';
-    addRecordButtonDashboard.onclick = () => {
-        currentView = 'records';
-        // Optionally reset or prefill newRecord form states here if desired
-        newRecordFecha = new Date().toISOString().split('T')[0];
-        newRecordIntegranteId = null;
-        newRecordIntegranteSelectedName = '';
-        newRecordIntegranteSearchText = '';
-        newRecordMovimiento = 'INGRESOS';
-        newRecordRazonId = null;
-        newRecordRazonSelectedDescripcion = '';
-        newRecordRazonSearchText = '';
-        newRecordDescripcion = '';
-        newRecordMonto = '';
-        renderApp();
-    };
-    parentElement.appendChild(addRecordButtonDashboard);
+    const balanceGeneral = totalIngresos + totalGastosSum - totalInversionSum;
+
+    const balanceContainer = document.createElement('div');
+    balanceContainer.className = 'dashboard-balance-container';
+
+    const balanceTitle = document.createElement('h2');
+    balanceTitle.className = 'dashboard-balance-title';
+    balanceTitle.textContent = 'Balance General';
+
+    const balanceValue = document.createElement('p');
+    balanceValue.className = 'dashboard-balance-value';
+    balanceValue.textContent = `RD$${balanceGeneral.toLocaleString('es-DO', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    if (balanceGeneral >= 0) {
+        balanceValue.style.color = '#34C759';
+    } else {
+        balanceValue.style.color = '#FF3B30';
+    }
+
+    balanceContainer.appendChild(balanceTitle);
+    balanceContainer.appendChild(balanceValue);
+    parentElement.appendChild(balanceContainer);
+
+    // Financial Quotes Section
+    const quoteBox = document.createElement('div');
+    quoteBox.className = 'dashboard-quote-box';
+    const quoteTextEl = document.createElement('p');
+    quoteTextEl.className = 'dashboard-quote-text';
+    const quoteAuthorEl = document.createElement('p');
+    quoteAuthorEl.className = 'dashboard-quote-author';
+
+    quoteBox.appendChild(quoteTextEl);
+    quoteBox.appendChild(quoteAuthorEl);
+    parentElement.appendChild(quoteBox);
+
+    function showNextQuote() {
+        if (financialQuotes.length === 0) return;
+        currentQuoteIndex = (currentQuoteIndex + 1) % financialQuotes.length;
+        const quote = financialQuotes[currentQuoteIndex];
+        quoteTextEl.textContent = `"${quote.text}"`;
+        quoteAuthorEl.textContent = `- ${quote.author}`;
+    }
+
+    if (quoteIntervalId) {
+        clearInterval(quoteIntervalId);
+    }
+
+    if (financialQuotes.length > 0) {
+        currentQuoteIndex = -1; // Start before the first to display it immediately
+        showNextQuote(); // Display the first quote immediately
+        quoteIntervalId = setInterval(showNextQuote, 20000); // Change quote every 20 seconds
+    } else {
+        quoteTextEl.textContent = "No hay frases disponibles en este momento.";
+    }
 }
+
 
 function renderFinancialPanelScreen(parentElement: HTMLElement): void {
     const header = document.createElement('h1');
-    header.className = 'main-header-title'; 
+    header.className = 'main-header-title';
     header.textContent = 'Panel Financiero';
     parentElement.appendChild(header);
 
@@ -627,33 +689,33 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
     summaryCardsContainer.className = 'summary-cards-container';
 
     let totalIngresos = 0;
-    let totalGastosSum = 0; 
+    let totalGastosSum = 0;
     let totalInversionSum = 0;
 
     financialRecords.forEach(r => {
         if (r.movimiento === 'INGRESOS') {
             totalIngresos += r.monto;
         } else if (r.movimiento === 'GASTOS') {
-            totalGastosSum += r.monto; 
+            totalGastosSum += r.monto;
         } else if (r.movimiento === 'INVERSION') {
-            totalInversionSum += r.monto; 
+            totalInversionSum += r.monto;
         }
     });
-    
+
     const balanceGeneral = totalIngresos + totalGastosSum - totalInversionSum;
 
     summaryCardsContainer.appendChild(
         renderSummaryCardComponent('Ingresos Totales', totalIngresos, 'RD$', 'summary-ingresos')
     );
     summaryCardsContainer.appendChild(
-        renderSummaryCardComponent('Gastos Totales', Math.abs(totalGastosSum), 'RD$', 'summary-gastos') 
+        renderSummaryCardComponent('Gastos Totales', Math.abs(totalGastosSum), 'RD$', 'summary-gastos')
     );
     summaryCardsContainer.appendChild(
         renderSummaryCardComponent('Balance General', balanceGeneral, 'RD$', 'summary-balance')
     );
-    
+
     parentElement.appendChild(summaryCardsContainer);
-    
+
     const chartSectionCard = document.createElement('div');
     chartSectionCard.className = 'dashboard-section-card';
 
@@ -700,7 +762,7 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
     const yearSelect = document.createElement('select');
     yearSelect.id = 'dashboard-year';
     yearSelect.className = 'form-input';
-    
+
     const availableYears = getAvailableYearsForFilter(financialRecords);
     availableYears.forEach(year => {
         const option = document.createElement('option');
@@ -708,7 +770,7 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
         option.textContent = year === 'all_available' ? 'Todos los Años Disponibles' : String(year);
         yearSelect.appendChild(option);
     });
-    
+
     yearSelect.value = String(dashboardSelectedYear);
     yearSelect.onchange = (e) => {
         const val = (e.target as HTMLSelectElement).value;
@@ -737,7 +799,7 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
         const monthSelect = document.createElement('select');
         monthSelect.id = 'dashboard-month';
         monthSelect.className = 'form-input';
-        
+
         MONTH_NAMES_ES.forEach((name, index) => {
             const option = document.createElement('option');
             option.value = String(index + 1); // 1-12
@@ -753,15 +815,15 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
         monthGroup.appendChild(monthSelect);
         filtersContainer.appendChild(monthGroup);
     }
-    
+
     chartSectionCard.appendChild(filtersContainer);
 
     const chartContainer = document.createElement('div');
     chartContainer.className = 'dashboard-chart-container';
     chartSectionCard.appendChild(chartContainer);
-    
+
     parentElement.appendChild(chartSectionCard);
-    
+
     const chartData = getProcessedChartData();
     renderTrendChartSVG(chartContainer, chartData);
 }
@@ -852,7 +914,7 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
             listItem.onclick = () => {
                 newRecordIntegranteId = integrante.id;
                 newRecordIntegranteSelectedName = integrante.nombre;
-                focusTargetId = RECORD_INTEGRANTE_FILTER_INPUT_ID; 
+                focusTargetId = RECORD_INTEGRANTE_FILTER_INPUT_ID;
                 renderApp();
             };
             integranteUl.appendChild(listItem);
@@ -927,7 +989,7 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
         ? [...razones].sort((a,b) => a.descripcion.localeCompare(b.descripcion))
         : razones.filter(raz => raz.descripcion.toLowerCase().includes(newRecordRazonSearchText.toLowerCase()))
                    .sort((a,b) => a.descripcion.localeCompare(b.descripcion));
-    
+
     if (currentFilteredRazones.length === 0 && newRecordRazonSearchText.trim() !== '') {
         const noResultItem = document.createElement('li');
         noResultItem.textContent = 'Ninguna razón coincide';
@@ -941,7 +1003,7 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
             listItem.onclick = () => {
                 newRecordRazonId = razon.id;
                 newRecordRazonSelectedDescripcion = razon.descripcion;
-                focusTargetId = RECORD_RAZON_FILTER_INPUT_ID; 
+                focusTargetId = RECORD_RAZON_FILTER_INPUT_ID;
                 renderApp();
             };
             razonUl.appendChild(listItem);
@@ -1142,7 +1204,7 @@ function handleExportFinancialRecordsCSV() {
             escapeCsvValue(record.movimiento),
             escapeCsvValue(razon ? razon.descripcion : 'Desconocido'),
             escapeCsvValue(record.descripcion),
-            escapeCsvValue(record.monto) 
+            escapeCsvValue(record.monto)
         ];
         csvRows.push(row.join(','));
     });
@@ -1161,8 +1223,8 @@ function parseCsvLine(line: string): string[] {
         const char = line[i];
         if (char === '"') {
             if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
-                currentField += '"'; 
-                i++; 
+                currentField += '"';
+                i++;
             } else {
                 inQuotes = !inQuotes;
             }
@@ -1173,7 +1235,7 @@ function parseCsvLine(line: string): string[] {
             currentField += char;
         }
     }
-    result.push(currentField); 
+    result.push(currentField);
     return result;
 }
 
@@ -1183,7 +1245,7 @@ function parseFlexibleDate(dateString: string): string | null {
     const dmyMatch = dateString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (dmyMatch) {
         const day = parseInt(dmyMatch[1], 10);
-        const month = parseInt(dmyMatch[2], 10); 
+        const month = parseInt(dmyMatch[2], 10);
         const year = parseInt(dmyMatch[3], 10);
 
         if (year > 1000 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
@@ -1392,7 +1454,7 @@ function handleImportRazonesCSVFile(event: Event) {
         if (!text) { alert('El archivo CSV de razones está vacío.'); fileInput.value = ''; return; }
 
         const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
-        if (lines.length < 1) { 
+        if (lines.length < 1) {
             alert('El archivo CSV de razones no contiene datos válidos.'); fileInput.value = ''; return;
         }
 
@@ -1425,9 +1487,9 @@ function handleImportRazonesCSVFile(event: Event) {
                 else console.warn(`Fila ${i+1} (razones): ID '${csvIdStr}' inválido. Se tratará como nueva si la descripción es única.`);
             }
 
-            if (csvId !== null) { 
+            if (csvId !== null) {
                 const existingRazon = razones.find(r => r.id === csvId);
-                if (existingRazon) { 
+                if (existingRazon) {
                     if (existingRazon.descripcion.toUpperCase() !== rawDesc) {
                         if (razones.some(r => r.id !== csvId && r.descripcion.toUpperCase() === rawDesc)) {
                             console.warn(`Fila ${i+1} (razones) omitida: Nueva descripción '${rawDesc}' para ID ${csvId} ya existe con otro ID.`);
@@ -1436,8 +1498,8 @@ function handleImportRazonesCSVFile(event: Event) {
                             existingRazon.descripcion = rawDesc;
                             updatedCount++;
                         }
-                    } 
-                } else { 
+                    }
+                } else {
                     if (razones.some(r => r.descripcion.toUpperCase() === rawDesc)) {
                         console.warn(`Fila ${i+1} (razones) omitida: Descripción '${rawDesc}' para nuevo ID ${csvId} ya existe.`);
                         skippedCount++;
@@ -1447,7 +1509,7 @@ function handleImportRazonesCSVFile(event: Event) {
                         importedCount++;
                     }
                 }
-            } else { 
+            } else {
                 if (razones.some(r => r.descripcion.toUpperCase() === rawDesc)) {
                     console.warn(`Fila ${i+1} (razones) omitida: Descripción '${rawDesc}' ya existe (sin ID válido).`);
                     skippedCount++;
@@ -1591,7 +1653,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
         razon.descripcion.toLowerCase().includes(razonesSearchTerm.toLowerCase())
     );
 
-    const sortedRazones = [...filteredRazones]; 
+    const sortedRazones = [...filteredRazones];
     switch (razonesSortOrder) {
         case 'id_asc':
             sortedRazones.sort((a, b) => a.id - b.id);
@@ -1619,7 +1681,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
             editInput.oninput = (e) => editReasonInputText = (e.target as HTMLInputElement).value;
             const EDIT_INPUT_ID = `edit-razon-${razon.id}`;
             editInput.id = EDIT_INPUT_ID;
-            focusTargetId = EDIT_INPUT_ID; 
+            focusTargetId = EDIT_INPUT_ID;
 
             const saveButton = document.createElement('button');
             saveButton.textContent = 'Guardar';
@@ -1756,9 +1818,9 @@ function handleImportIntegrantesCSVFile(event: Event) {
                 else console.warn(`Fila ${i+1} (integrantes): ID '${csvIdStr}' inválido. Se tratará como nuevo si el nombre es único.`);
             }
 
-            if (csvId !== null) { 
+            if (csvId !== null) {
                 const existingIntegrante = integrantes.find(inte => inte.id === csvId);
-                if (existingIntegrante) { 
+                if (existingIntegrante) {
                     if (existingIntegrante.nombre.toUpperCase() !== rawName) {
                         if (integrantes.some(inte => inte.id !== csvId && inte.nombre.toUpperCase() === rawName)) {
                             console.warn(`Fila ${i+1} (integrantes) omitida: Nuevo nombre '${rawName}' para ID ${csvId} ya existe con otro ID.`);
@@ -1767,8 +1829,8 @@ function handleImportIntegrantesCSVFile(event: Event) {
                             existingIntegrante.nombre = rawName;
                             updatedCount++;
                         }
-                    } 
-                } else { 
+                    }
+                } else {
                     if (integrantes.some(inte => inte.nombre.toUpperCase() === rawName)) {
                         console.warn(`Fila ${i+1} (integrantes) omitida: Nombre '${rawName}' para nuevo ID ${csvId} ya existe.`);
                         skippedCount++;
@@ -1778,7 +1840,7 @@ function handleImportIntegrantesCSVFile(event: Event) {
                         importedCount++;
                     }
                 }
-            } else { 
+            } else {
                 if (integrantes.some(inte => inte.nombre.toUpperCase() === rawName)) {
                     console.warn(`Fila ${i+1} (integrantes) omitida: Nombre '${rawName}' ya existe (sin ID válido).`);
                     skippedCount++;
@@ -1922,7 +1984,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
         integrante.nombre.toLowerCase().includes(integrantesSearchTerm.toLowerCase())
     );
 
-    const sortedIntegrantes = [...filteredIntegrantes]; 
+    const sortedIntegrantes = [...filteredIntegrantes];
     switch (integrantesSortOrder) {
         case 'id_asc':
             sortedIntegrantes.sort((a, b) => a.id - b.id);
