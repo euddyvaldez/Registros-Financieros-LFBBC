@@ -1,0 +1,687 @@
+
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #F0F0F0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; 
+    min-height: 100vh;
+    color: #1C1C1E;
+}
+
+#app {
+    width: 100%;
+    max-width: 420px;
+    height: 100vh; /* Full viewport height for mobile */
+    background-color: #FAF9F7;
+    display: flex;
+    flex-direction: column; /* Stack content and nav vertically */
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+@media (min-width: 450px) { /* On larger screens, simulate phone height */
+    #app {
+        height: 90vh; /* Constrained height on desktop */
+        max-height: 800px; /* Max sensible height */
+        border-radius: 20px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        overflow: hidden; 
+    }
+}
+
+#main-content-area {
+    flex-grow: 1; 
+    overflow-y: auto; 
+    padding: 20px; 
+}
+
+#main-content-area::-webkit-scrollbar {
+    width: 8px;
+}
+#main-content-area::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+#main-content-area::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+#main-content-area::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+.bottom-nav {
+    width: 100%;
+    height: 65px;
+    background-color: #FFFFFF;
+    border-top: 1px solid #D1D1D6;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-shrink: 0;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    padding: 8px 5px;
+    cursor: pointer;
+    color: #8E8E93;
+    text-align: center;
+    transition: color 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.nav-item svg {
+    width: 22px;
+    height: 22px;
+    margin-bottom: 3px;
+    stroke-width: 2;
+}
+
+.nav-item span {
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.nav-item.active {
+    color: #007AFF;
+}
+.nav-item:hover:not(.active) {
+    color: #5a5a5f;
+}
+
+.main-header-title {
+    font-size: 28px; 
+    font-weight: 700;
+    color: #1C1C1E;
+    margin-bottom: 20px; 
+    line-height: 1.2;
+    text-align: center;
+}
+
+/* Styles for RESTORED Dashboard Screen (Old Buttons) */
+.dashboard-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Space between main menu buttons */
+    margin-bottom: 30px; /* Space before the "Add Record" button */
+}
+
+.menu-button {
+    background-color: #FFFFFF;
+    color: #007AFF;
+    border: 1px solid #007AFF;
+    padding: 20px;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: left; /* Align text to the left */
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    display: flex; /* For icon and text alignment */
+    align-items: center; /* Vertically align icon and text */
+    width: 100%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.menu-button:hover {
+    background-color: #f0f8ff; /* Light blue on hover */
+}
+
+.menu-button-icon {
+    margin-right: 15px; /* Space between icon and text */
+    display: inline-flex; /* To contain SVG properly */
+    align-items: center;
+}
+.menu-button-icon svg {
+    width: 28px; /* Slightly larger icon */
+    height: 28px;
+    stroke-width: 1.5; /* Thinner stroke if needed for aesthetics */
+}
+
+.add-record-button-dashboard { /* Specific class for the dashboard's add record button */
+    background-color: #34C759; /* Green color */
+    color: white;
+    padding: 18px 20px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.2s ease;
+    margin-top: 10px; /* Space from menu buttons */
+}
+.add-record-button-dashboard:hover {
+    background-color: #28a745; /* Darker green on hover */
+}
+
+
+/* Styles for Financial Panel Screen (New Chart and Filters) */
+
+.summary-cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.summary-card {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.07);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; 
+}
+
+.summary-card h3 {
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.summary-card p {
+    font-size: 16px; 
+    font-weight: 600;
+    word-break: break-word; 
+    overflow-wrap: break-word; 
+    line-height: 1.3; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
+
+.summary-ingresos p { color: #34C759; }
+.summary-gastos p { color: #FF3B30; }
+.summary-balance p { color: #007AFF; }
+
+
+.dashboard-section-card { /* Used by Financial Panel for its main content grouping */
+    background-color: #FFFFFF;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+
+.dashboard-filters-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-group label {
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+}
+
+.dashboard-chart-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column; 
+    align-items: center; 
+}
+
+.trend-chart-svg {
+    width: 100%;
+    max-width: 380px; 
+    height: auto;
+    display: block; 
+}
+
+.chart-axis {
+    stroke: #D1D1D6;
+    stroke-width: 1;
+}
+
+.chart-tick {
+    stroke: #EAEAEA;
+    stroke-width: 1;
+}
+
+.chart-label {
+    font-size: 10px;
+    fill: #555;
+    text-anchor: middle;
+}
+
+.y-axis-label {
+    text-anchor: end;
+    font-size: 9px; 
+}
+
+.chart-line {
+    stroke-width: 2;
+    fill: none;
+}
+
+.chart-point {
+    stroke: white;
+    stroke-width: 1;
+}
+
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: #333;
+}
+
+.legend-color-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 6px;
+    display: inline-block;
+}
+
+.no-data-message {
+    text-align: center;
+    color: #8E8E93;
+    padding: 30px 10px; 
+    font-style: italic;
+    font-size: 14px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* Styles for Razones & Integrantes Sections */
+.section-header { 
+    font-size: 26px; 
+    font-weight: 600;
+    color: #1C1C1E;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.header-title { /* General header for screens like Records */
+    font-size: 26px; 
+    font-weight: 700;
+    color: #1C1C1E;
+    margin-bottom: 20px; 
+    line-height: 1.2;
+}
+
+
+.search-container {
+    margin-bottom: 20px;
+}
+
+.search-razon-input { 
+    width: 100%;
+}
+
+.razon-form { 
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.add-form { 
+   flex-direction: column;
+}
+
+.add-form .razon-input {
+    margin-bottom: 10px;
+}
+
+.razon-input, .form-input {
+    flex-grow: 1;
+    padding: 12px 15px;
+    border: 1px solid #D1D1D6;
+    border-radius: 8px;
+    font-size: 15px;
+    width: 100%;
+    background-color: #fff; 
+}
+
+.razon-input:focus, .form-input:focus {
+    outline: none;
+    border-color: #007AFF;
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+textarea.form-input {
+    min-height: 60px;
+    resize: vertical;
+}
+
+
+.primary-button, .add-record-button { 
+    background-color: #007AFF;
+    color: white;
+    padding: 15px 20px; 
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.2s ease;
+}
+.primary-button:hover, .add-record-button:hover {
+    background-color: #005bb5;
+}
+
+.nav-button { /* Base style for buttons in forms */
+    width: 100%;
+    padding: 15px 20px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+
+.razones-list { 
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.razon-item { 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #fff;
+    border-radius: 8px;
+    border: 1px solid #EAEAEA;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.razon-text {
+    flex-grow: 1;
+    margin-right: 10px;
+    font-size: 15px;
+    word-break: break-word;
+}
+
+.list-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.icon-button {
+    background-color: transparent;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #555;
+}
+
+.icon-button svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.icon-button:hover {
+    background-color: #f0f0f0;
+}
+
+.edit-icon-button:hover {
+    color: #007AFF;
+}
+
+.delete-icon-button:hover {
+    color: #FF3B30;
+}
+
+.action-button-inline {
+    padding: 8px 12px;
+    font-size: 13px;
+    width: auto;
+    margin-left: 8px;
+    min-height: auto;
+    border-radius: 6px; 
+}
+
+.razon-item .razon-input {
+    margin-right: 10px;
+}
+
+.success-button {
+    background-color: #34C759;
+    color: white;
+}
+.success-button:hover {
+    background-color: #28a745;
+}
+
+.danger-button {
+    background-color: #FF3B30;
+    color: white;
+}
+.danger-button:hover {
+    background-color: #dc3545;
+}
+
+/* Styles for Financial Records Form and Table (Records View) */
+.record-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+}
+
+.filter-selection-group {
+    border: 1px solid #E0E0E0;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 5px; 
+}
+
+.filter-selection-group label { 
+    margin-bottom: 6px; 
+}
+
+.selected-item-display { 
+    background-color: #f8f8f8;
+    font-weight: 500;
+    color: #333;
+}
+
+.selectable-list-wrapper {
+    max-height: 150px; 
+    overflow-y: auto;
+    border: 1px solid #D1D1D6;
+    border-radius: 4px; 
+    margin-top: 8px; 
+    background-color: #fff;
+}
+
+.selectable-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.selectable-list-item {
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+.selectable-list-item:last-child {
+    border-bottom: none;
+}
+
+.selectable-list-item:hover {
+    background-color: #f0f0f0;
+}
+
+.selectable-list-item.disabled {
+    color: #888;
+    cursor: default;
+    background-color: #f9f9f9;
+}
+
+
+.records-table-container {
+    width: 100%;
+    overflow-x: auto; 
+    margin-top: 20px;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    background-color: #fff;
+}
+
+.records-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px; 
+}
+
+.records-table th, .records-table td {
+    border-bottom: 1px solid #EAEAEA;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: middle; 
+    white-space: nowrap; 
+}
+.records-table td:nth-child(5) { 
+    white-space: normal; 
+    min-width: 150px; 
+    max-width: 250px; 
+    word-break: break-word;
+}
+
+
+.records-table th {
+    background-color: #F8F8F8;
+    font-weight: 600;
+    color: #333;
+    padding-top: 12px;
+    padding-bottom: 12px;
+}
+
+.records-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+.records-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.import-export-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.csv-action-button {
+    flex-grow: 1; 
+    padding: 12px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    background-color: #4CAF50; 
+    color: white;
+}
+
+.csv-action-button:first-child { 
+    background-color: #FF9500; 
+}
+
+.csv-action-button:hover {
+    opacity: 0.85;
+}
+
+.section-import-export {
+    margin-top: 10px; 
+    margin-bottom: 20px;
+}
+
+.sort-controls-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px; 
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.sort-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+}
+
+.sort-select {
+    flex-grow: 1; 
+}
