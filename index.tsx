@@ -1,4 +1,5 @@
 
+import { GoogleGenAI } from "@google/genai"; // Added for potential future use, not used in this iteration.
 
 const initialRazonesData: { id: number; descripcion: string }[] = [
     { id: 1,  descripcion: "SEMANAL" },
@@ -49,11 +50,11 @@ try {
     if (storedRazones) {
         razones = JSON.parse(storedRazones);
     } else {
-        razones = [...initialRazonesData.map(r => ({...r}))];
+        razones = initialRazonesData.map(r => ({ id: r.id, descripcion: r.descripcion.toUpperCase() }));
     }
 } catch (e) {
     console.error("Error loading razones from localStorage", e);
-    razones = [...initialRazonesData.map(r => ({...r}))];
+    razones = initialRazonesData.map(r => ({ id: r.id, descripcion: r.descripcion.toUpperCase() }));
 }
 
 let nextReasonId = razones.length > 0 ? Math.max(0, ...razones.map(r => r.id)) + 1 : 1;
@@ -91,12 +92,13 @@ try {
     if (storedIntegrantes) {
         integrantes = JSON.parse(storedIntegrantes);
     } else {
-        integrantes = [...initialIntegrantesData.map(i => ({...i}))];
+        integrantes = initialIntegrantesData.map(i => ({ id: i.id, nombre: i.nombre.toUpperCase() }));
     }
 } catch (e) {
     console.error("Error loading integrantes from localStorage", e);
-    integrantes = [...initialIntegrantesData.map(i => ({...i}))];
+    integrantes = initialIntegrantesData.map(i => ({ id: i.id, nombre: i.nombre.toUpperCase() }));
 }
+
 
 let nextIntegranteId = integrantes.length > 0 ? Math.max(0, ...integrantes.map(i => i.id)) + 1 : 1;
 let editingIntegranteId: number | null = null;
@@ -151,6 +153,9 @@ type DashboardViewType = 'annual_summary' | 'monthly_trend' | 'daily_trend';
 let dashboardViewType: DashboardViewType = 'monthly_trend';
 let dashboardSelectedYear: number | 'all_available' = 'all_available';
 let dashboardSelectedMonth: number = new Date().getMonth() + 1; // 1-12, used for daily_trend
+type FinancialPanelChartType = 'line' | 'bar' | 'pie';
+let financialPanelChartType: FinancialPanelChartType = 'line';
+
 
 // --- Financial Quotes State ---
 let currentQuoteIndex = 0;
@@ -171,6 +176,32 @@ const financialQuotes = [
 
 let currentView = 'dashboard'; // 'dashboard', 'financial_panel', 'records', 'razones', or 'integrantes'
 
+// --- Financial Import State ---
+let showFinancialImportOptions: boolean = false;
+let financialImportMode: 'replace' | 'append' = 'append';
+
+// --- Razones Import State ---
+let showRazonImportOptions: boolean = false;
+let razonImportMode: 'replace' | 'append' = 'append';
+
+// --- Integrantes Import State ---
+let showIntegranteImportOptions: boolean = false;
+let integranteImportMode: 'replace' | 'append' = 'append';
+
+// --- Dashboard State ---
+let balanceVisible: boolean = true;
+
+// --- Records Filter State ---
+let recordFilterText: string = '';
+type RecordFilterField = 'fecha' | 'integrante' | 'movimiento' | 'razon' | 'descripcion';
+let recordFilterField: RecordFilterField = 'descripcion';
+
+
+// --- Theme State ---
+type Theme = 'light' | 'dark';
+let currentTheme: Theme = 'light';
+
+
 const appRoot = document.getElementById('app');
 const RAZON_SEARCH_INPUT_ID = 'razon-search-input-field';
 const INTEGRANTE_SEARCH_INPUT_ID = 'integrante-search-input-field';
@@ -180,6 +211,7 @@ const INTEGRANTE_CSV_FILE_INPUT_ID = 'integrante-csv-file-input';
 
 const RECORD_INTEGRANTE_FILTER_INPUT_ID = 'record-integrante-filter-input';
 const RECORD_RAZON_FILTER_INPUT_ID = 'record-razon-filter-input';
+const RECORD_FILTER_TEXT_INPUT_ID = 'record-filter-text-input';
 
 
 const ICONS = {
@@ -223,8 +255,51 @@ const ICONS = {
             <path d="M3 3v18h18"/>
             <path d="m18 9-5 5-4-4-3 3"/>
         </svg>
+    `,
+    moon: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+    `,
+    sun: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
     `
 };
+
+const CHART_COLORS = {
+    ingresos: '#4CAF50', // Green
+    gastos: '#FF3B30',   // Red
+    inversion: '#FFC107', // Amber/Yellow
+    balance: '#007AFF',  // Blue
+    defaultLine: '#8E8E93' // Grey for axes or neutral elements
+};
+
+function loadTheme() {
+    const savedTheme = localStorage.getItem('appTheme') as Theme | null;
+    if (savedTheme) {
+        currentTheme = savedTheme;
+    }
+    document.body.className = currentTheme === 'dark' ? 'dark-theme' : '';
+}
+
+function toggleTheme() {
+    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('appTheme', currentTheme);
+    document.body.className = currentTheme === 'dark' ? 'dark-theme' : '';
+    renderApp(); // Re-render to update theme-dependent elements like icons
+}
+
+
+function normalizeStringForComparison(str: string): string {
+    if (!str) return '';
+    // Basic accent removal for Spanish vowels and N, and convert to uppercase
+    return str.trim().toUpperCase()
+        .replace(/Á/g, 'A')
+        .replace(/É/g, 'E')
+        .replace(/Í/g, 'I')
+        .replace(/Ó/g, 'O')
+        .replace(/Ú/g, 'U')
+        .replace(/Ñ/g, 'N');
+}
+
 
 function saveFinancialRecords() {
     try {
@@ -238,6 +313,7 @@ function saveFinancialRecords() {
 function saveRazonesToLocalStorage() {
     try {
         localStorage.setItem('razonesData', JSON.stringify(razones));
+        nextReasonId = razones.length > 0 ? Math.max(0, ...razones.map(r => r.id)) + 1 : 1;
     } catch (e) {
         console.error("Error saving razones to localStorage", e);
         alert("Error: No se pudieron guardar las razones. El almacenamiento local puede estar lleno o deshabilitado.");
@@ -247,8 +323,9 @@ function saveRazonesToLocalStorage() {
 function saveIntegrantesToLocalStorage() {
     try {
         localStorage.setItem('integrantesData', JSON.stringify(integrantes));
-    } catch (e) {
-        console.error("Error saving integrantes to localStorage", e);
+        nextIntegranteId = integrantes.length > 0 ? Math.max(0, ...integrantes.map(i => i.id)) + 1 : 1;
+    } catch (e)        {
+            console.error("Error saving integrantes to localStorage", e);
         alert("Error: No se pudieron guardar los integrantes. El almacenamiento local puede estar lleno o deshabilitado.");
     }
 }
@@ -265,7 +342,7 @@ function renderApp(): void {
     appHeaderDiv.className = 'app-global-header';
 
     const logoImg = document.createElement('img');
-    logoImg.src = 'los forasteros-03.png';
+    logoImg.src = 'https://i.postimg.cc/MMMG2PD5/los-forasteros-03.png'; // Updated logo URL
     logoImg.alt = 'LFBBC Logo';
     logoImg.className = 'app-global-logo';
     appHeaderDiv.appendChild(logoImg);
@@ -274,6 +351,15 @@ function renderApp(): void {
     appTitleSpan.className = 'app-global-title';
     appTitleSpan.textContent = 'Registros Financieros LFBBC';
     appHeaderDiv.appendChild(appTitleSpan);
+
+    const themeToggleButton = document.createElement('button');
+    themeToggleButton.id = 'theme-toggle-button';
+    themeToggleButton.className = 'theme-toggle-button';
+    themeToggleButton.setAttribute('aria-label', `Cambiar a tema ${currentTheme === 'light' ? 'oscuro' : 'claro'}`);
+    themeToggleButton.innerHTML = currentTheme === 'light' ? ICONS.moon : ICONS.sun;
+    themeToggleButton.onclick = toggleTheme;
+    appHeaderDiv.appendChild(themeToggleButton);
+
 
     appRoot.appendChild(appHeaderDiv);
 
@@ -339,8 +425,8 @@ function renderBottomNavigation(parentElement: HTMLElement): void {
         `;
 
         navItem.onclick = () => {
-            if (currentView === 'dashboard' && item.view !== 'dashboard' && quoteIntervalId) {
-                clearInterval(quoteIntervalId);
+            if (currentView === 'dashboard' && item.view !== 'dashboard' && quoteIntervalId !== null) {
+                window.clearInterval(quoteIntervalId);
                 quoteIntervalId = null;
             }
             if (currentView === 'razones' && item.view !== 'razones') {
@@ -348,18 +434,22 @@ function renderBottomNavigation(parentElement: HTMLElement): void {
                 razonesSearchTerm = '';
                 newReasonInputText = '';
                 editReasonInputText = '';
+                showRazonImportOptions = false;
             }
             if (currentView === 'integrantes' && item.view !== 'integrantes') {
                 editingIntegranteId = null;
                 integrantesSearchTerm = '';
                 newIntegranteInputText = '';
                 editIntegranteInputText = '';
+                showIntegranteImportOptions = false;
             }
              if (currentView === 'records' && item.view !== 'records') {
                 newRecordIntegranteSearchText = '';
                 newRecordIntegranteSelectedName = '';
                 newRecordRazonSearchText = '';
                 newRecordRazonSelectedDescripcion = '';
+                showFinancialImportOptions = false; // Hide import options when leaving records screen
+                recordFilterText = ''; // Reset record filter text
             }
             currentView = item.view;
             renderApp();
@@ -385,8 +475,8 @@ const MONTH_NAMES_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", 
 interface ProcessedChartDataPoint {
     label: string;
     ingresos: number;
-    gastos: number; // For chart, this will be Math.abs(gastos)
-    inversion: number; // For chart, this will be Math.abs(inversion)
+    gastos: number;
+    inversion: number;
 }
 
 function getProcessedChartData(): ProcessedChartDataPoint[] {
@@ -400,8 +490,8 @@ function getProcessedChartData(): ProcessedChartDataPoint[] {
                 yearlyData[year] = { label: String(year), ingresos: 0, gastos: 0, inversion: 0 };
             }
             if (r.movimiento === 'INGRESOS') yearlyData[year].ingresos += r.monto;
-            else if (r.movimiento === 'GASTOS') yearlyData[year].gastos += Math.abs(r.monto);
-            else if (r.movimiento === 'INVERSION') yearlyData[year].inversion += Math.abs(r.monto);
+            else if (r.movimiento === 'GASTOS') yearlyData[year].gastos += Math.abs(r.monto); // Ensure positive for chart
+            else if (r.movimiento === 'INVERSION') yearlyData[year].inversion += Math.abs(r.monto); // Ensure positive for chart
         });
         return Object.values(yearlyData).sort((a,b) => parseInt(a.label) - parseInt(b.label));
     }
@@ -424,8 +514,8 @@ function getProcessedChartData(): ProcessedChartDataPoint[] {
 
             if (yearToFilter === null || recordYear === yearToFilter) {
                 if (r.movimiento === 'INGRESOS') monthlyData[recordMonth].ingresos += r.monto;
-                else if (r.movimiento === 'GASTOS') monthlyData[recordMonth].gastos += Math.abs(r.monto);
-                else if (r.movimiento === 'INVERSION') monthlyData[recordMonth].inversion += Math.abs(r.monto);
+                else if (r.movimiento === 'GASTOS') monthlyData[recordMonth].gastos += Math.abs(r.monto); // Ensure positive for chart
+                else if (r.movimiento === 'INVERSION') monthlyData[recordMonth].inversion += Math.abs(r.monto); // Ensure positive for chart
             }
         });
         return Object.values(monthlyData);
@@ -448,8 +538,8 @@ function getProcessedChartData(): ProcessedChartDataPoint[] {
             if (recordDate.getFullYear() === yearToFilter && (recordDate.getMonth() + 1) === dashboardSelectedMonth) {
                 const day = recordDate.getDate();
                 if (r.movimiento === 'INGRESOS') dailyData[day].ingresos += r.monto;
-                else if (r.movimiento === 'GASTOS') dailyData[day].gastos += Math.abs(r.monto);
-                else if (r.movimiento === 'INVERSION') dailyData[day].inversion += Math.abs(r.monto);
+                else if (r.movimiento === 'GASTOS') dailyData[day].gastos += Math.abs(r.monto); // Ensure positive for chart
+                else if (r.movimiento === 'INVERSION') dailyData[day].inversion += Math.abs(r.monto); // Ensure positive for chart
             }
         });
         return Object.values(dailyData);
@@ -531,28 +621,29 @@ function renderTrendChartSVG(parentElement: HTMLElement, data: ProcessedChartDat
         svg.appendChild(label);
     }
 
-    const lineColors = { ingresos: '#4CAF50', gastos: '#FF3B30', inversion: '#007AFF' };
     (['ingresos', 'gastos', 'inversion'] as const).forEach(type => {
-        if (data.every(d => d[type] === 0 && d[type] === 0)) return;
+        if (data.every(d => d[type] === 0)) return;
 
         const path = document.createElementNS(svgNS, 'path');
         const dAttr = data.map((d, i) =>
             `${i === 0 ? 'M' : 'L'} ${xScale(i)} ${yScale(d[type])}`
         ).join(' ');
         path.setAttribute('d', dAttr);
-        path.setAttribute('stroke', lineColors[type]);
+        path.setAttribute('stroke', CHART_COLORS[type]);
         path.setAttribute('fill', 'none');
         path.classList.add('chart-line');
         svg.appendChild(path);
 
         data.forEach((d, i) => {
-            const circle = document.createElementNS(svgNS, 'circle');
-            circle.setAttribute('cx', String(xScale(i)));
-            circle.setAttribute('cy', String(yScale(d[type])));
-            circle.setAttribute('r', '3');
-            circle.setAttribute('fill', lineColors[type]);
-            circle.classList.add('chart-point');
-            svg.appendChild(circle);
+            if (d[type] > 0 || (d[type] === 0 && data.some(dp => dp[type] > 0))) { // Draw point if value > 0 or if it's 0 but other points for this type exist
+                const circle = document.createElementNS(svgNS, 'circle');
+                circle.setAttribute('cx', String(xScale(i)));
+                circle.setAttribute('cy', String(yScale(d[type])));
+                circle.setAttribute('r', '3');
+                circle.setAttribute('fill', CHART_COLORS[type]);
+                circle.classList.add('chart-point');
+                svg.appendChild(circle);
+            }
         });
     });
 
@@ -563,7 +654,7 @@ function renderTrendChartSVG(parentElement: HTMLElement, data: ProcessedChartDat
         legendItem.className = 'legend-item';
         const colorBox = document.createElement('span');
         colorBox.className = 'legend-color-box';
-        colorBox.style.backgroundColor = lineColors[type];
+        colorBox.style.backgroundColor = CHART_COLORS[type];
         const text = document.createElement('span');
         text.textContent = type.charAt(0).toUpperCase() + type.slice(1);
         legendItem.appendChild(colorBox);
@@ -574,6 +665,218 @@ function renderTrendChartSVG(parentElement: HTMLElement, data: ProcessedChartDat
     parentElement.appendChild(svg);
     parentElement.appendChild(legendContainer);
 }
+
+function renderBarChartSVG(parentElement: HTMLElement, data: ProcessedChartDataPoint[]): void {
+    parentElement.innerHTML = '';
+
+    if (data.length === 0) {
+        const noDataMsg = document.createElement('p');
+        noDataMsg.textContent = 'No hay datos para el período y filtros seleccionados.';
+        noDataMsg.className = 'no-data-message';
+        parentElement.appendChild(noDataMsg);
+        return;
+    }
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    const chartWidth = 380;
+    const chartHeight = 250;
+    const margin = { top: 20, right: 20, bottom: 50, left: 70 };
+    const graphWidth = chartWidth - margin.left - margin.right;
+    const graphHeight = chartHeight - margin.top - margin.bottom;
+
+    svg.setAttribute('viewBox', `0 0 ${chartWidth} ${chartHeight}`);
+    svg.classList.add('trend-chart-svg'); // Re-use class for basic sizing
+
+    const maxValue = Math.max(10, ...data.flatMap(d => [d.ingresos, d.gastos, d.inversion]));
+    const yScale = (value: number) => margin.top + graphHeight - (value / maxValue) * graphHeight;
+
+    // X-axis and Y-axis lines and labels (similar to line chart)
+    const xAxisLine = document.createElementNS(svgNS, 'line');
+    xAxisLine.setAttribute('x1', String(margin.left));
+    xAxisLine.setAttribute('y1', String(margin.top + graphHeight));
+    xAxisLine.setAttribute('x2', String(margin.left + graphWidth));
+    xAxisLine.setAttribute('y2', String(margin.top + graphHeight));
+    xAxisLine.classList.add('chart-axis');
+    svg.appendChild(xAxisLine);
+
+    const yAxisLine = document.createElementNS(svgNS, 'line');
+    yAxisLine.setAttribute('x1', String(margin.left));
+    yAxisLine.setAttribute('y1', String(margin.top));
+    yAxisLine.setAttribute('x2', String(margin.left));
+    yAxisLine.setAttribute('y2', String(margin.top + graphHeight));
+    yAxisLine.classList.add('chart-axis');
+    svg.appendChild(yAxisLine);
+
+    const numGroups = data.length;
+    const groupWidth = graphWidth / numGroups;
+    const barPadding = 0.2; // Percentage of groupWidth for padding between groups
+    const barAreaWidth = groupWidth * (1 - barPadding);
+    const numBarsPerGroup = 3; // Ingresos, Gastos, Inversion
+    const barWidth = barAreaWidth / numBarsPerGroup;
+
+    data.forEach((d, i) => {
+        const groupX = margin.left + (groupWidth * i) + (groupWidth * barPadding / 2);
+
+        // X-axis label for group
+        const xLabel = document.createElementNS(svgNS, 'text');
+        xLabel.setAttribute('x', String(groupX + barAreaWidth / 2));
+        xLabel.setAttribute('y', String(margin.top + graphHeight + 20));
+        xLabel.textContent = d.label;
+        xLabel.classList.add('chart-label', 'x-axis-label');
+        svg.appendChild(xLabel);
+
+        // Bars for Ingresos, Gastos, Inversion
+        (['ingresos', 'gastos', 'inversion'] as const).forEach((type, barIndex) => {
+            if (d[type] > 0) {
+                const rect = document.createElementNS(svgNS, 'rect');
+                const barX = groupX + (barWidth * barIndex);
+                rect.setAttribute('x', String(barX));
+                rect.setAttribute('y', String(yScale(d[type])));
+                rect.setAttribute('width', String(barWidth * 0.9)); // Slight padding between bars in a group
+                rect.setAttribute('height', String(graphHeight - (yScale(d[type]) - margin.top) ));
+                rect.setAttribute('fill', CHART_COLORS[type]);
+                svg.appendChild(rect);
+            }
+        });
+    });
+
+    // Y-axis ticks and labels
+    const yTicks = 5;
+    for (let i = 0; i <= yTicks; i++) {
+        const val = (maxValue / yTicks) * i;
+        const yPos = yScale(val);
+        const tickLine = document.createElementNS(svgNS, 'line');
+        tickLine.setAttribute('x1', String(margin.left - 5));
+        tickLine.setAttribute('y1', String(yPos));
+        tickLine.setAttribute('x2', String(margin.left));
+        tickLine.setAttribute('y2', String(yPos));
+        tickLine.classList.add('chart-tick');
+        svg.appendChild(tickLine);
+
+        const label = document.createElementNS(svgNS, 'text');
+        label.setAttribute('x', String(margin.left - 10));
+        label.setAttribute('y', String(yPos + 4));
+        label.textContent = `RD$${val.toLocaleString('es-DO', {maximumFractionDigits: 0})}`;
+        label.classList.add('chart-label', 'y-axis-label');
+        svg.appendChild(label);
+    }
+
+    // Legend (same as line chart)
+    const legendContainer = document.createElement('div');
+    legendContainer.className = 'chart-legend';
+    (['ingresos', 'gastos', 'inversion'] as const).forEach(type => {
+        const legendItem = document.createElement('div');
+        legendItem.className = 'legend-item';
+        const colorBox = document.createElement('span');
+        colorBox.className = 'legend-color-box';
+        colorBox.style.backgroundColor = CHART_COLORS[type];
+        const text = document.createElement('span');
+        text.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+        legendItem.appendChild(colorBox);
+        legendItem.appendChild(text);
+        legendContainer.appendChild(legendItem);
+    });
+
+    parentElement.appendChild(svg);
+    parentElement.appendChild(legendContainer);
+}
+
+interface PieChartSegment {
+    name: string;
+    value: number;
+    color: string;
+}
+
+function renderPieChartSVG(parentElement: HTMLElement, data: PieChartSegment[]): void {
+    parentElement.innerHTML = '';
+
+    if (data.length === 0 || data.every(segment => segment.value === 0)) {
+        const noDataMsg = document.createElement('p');
+        noDataMsg.textContent = 'No hay datos suficientes para mostrar el gráfico de pastel.';
+        noDataMsg.className = 'no-data-message';
+        parentElement.appendChild(noDataMsg);
+        return;
+    }
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    const chartWidth = 380; // Make it wider to accommodate legend side-by-side or better text
+    const chartHeight = 220; // Slightly less tall as labels might be outside
+    const radius = Math.min(chartWidth / 2.5, chartHeight / 2) * 0.8; // Adjusted radius
+    const centerX = chartWidth / 2.5; // Center X adjusted for potential legend
+    const centerY = chartHeight / 2;
+
+    svg.setAttribute('viewBox', `0 0 ${chartWidth} ${chartHeight}`);
+    svg.classList.add('trend-chart-svg');
+
+    const totalValue = data.reduce((sum, segment) => sum + segment.value, 0);
+    if (totalValue === 0) {
+         const noDataMsg = document.createElement('p');
+        noDataMsg.textContent = 'No hay valores positivos para mostrar en el gráfico de pastel.';
+        noDataMsg.className = 'no-data-message';
+        parentElement.appendChild(noDataMsg);
+        return;
+    }
+
+    let startAngle = -Math.PI / 2; // Start at 12 o'clock
+
+    const pieGroup = document.createElementNS(svgNS, 'g');
+    pieGroup.setAttribute('transform', `translate(${centerX}, ${centerY})`);
+
+    data.forEach(segment => {
+        if (segment.value <= 0) return;
+
+        const sliceAngle = (segment.value / totalValue) * 2 * Math.PI;
+        const endAngle = startAngle + sliceAngle;
+
+        const x1 = radius * Math.cos(startAngle);
+        const y1 = radius * Math.sin(startAngle);
+        const x2 = radius * Math.cos(endAngle);
+        const y2 = radius * Math.sin(endAngle);
+
+        const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
+
+        const pathData = [
+            `M 0 0`, // Move to center
+            `L ${x1} ${y1}`, // Line to start of arc
+            `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`, // Arc
+            `Z` // Close path (back to center)
+        ].join(' ');
+
+        const path = document.createElementNS(svgNS, 'path');
+        path.setAttribute('d', pathData);
+        path.setAttribute('fill', segment.color);
+        path.classList.add('chart-pie-slice');
+        pieGroup.appendChild(path);
+
+        startAngle = endAngle;
+    });
+    svg.appendChild(pieGroup);
+
+    // Legend for Pie Chart (could be positioned differently)
+    const legendContainer = document.createElement('div');
+    legendContainer.className = 'chart-legend pie-chart-legend'; // Specific class for pie legend styling
+
+    data.forEach(segment => {
+        if (segment.value <= 0) return;
+        const percentage = ((segment.value / totalValue) * 100).toFixed(1);
+        const legendItem = document.createElement('div');
+        legendItem.className = 'legend-item';
+        const colorBox = document.createElement('span');
+        colorBox.className = 'legend-color-box';
+        colorBox.style.backgroundColor = segment.color;
+        const text = document.createElement('span');
+        text.textContent = `${segment.name}: ${percentage}% (RD$${segment.value.toLocaleString('es-DO', {minimumFractionDigits:2, maximumFractionDigits:2})})`;
+        legendItem.appendChild(colorBox);
+        legendItem.appendChild(text);
+        legendContainer.appendChild(legendItem);
+    });
+
+    parentElement.appendChild(svg);
+    parentElement.appendChild(legendContainer);
+}
+
 
 
 function renderSummaryCardComponent(title: string, value: number, currencySymbol: string, colorClass: string): HTMLDivElement {
@@ -596,54 +899,83 @@ function renderSummaryCardComponent(title: string, value: number, currencySymbol
 function renderDashboardScreen(parentElement: HTMLElement): void {
     parentElement.innerHTML = '';
 
-    parentElement.style.backgroundImage = "url('los forasteros-01.png')";
-    parentElement.style.backgroundRepeat = "no-repeat";
-    parentElement.style.backgroundPosition = "center center";
-    parentElement.style.backgroundSize = "cover";
-    // parentElement.style.height = "100%"; // Removed this line
     parentElement.style.display = 'flex';
     parentElement.style.flexDirection = 'column';
     parentElement.style.justifyContent = 'center';
     parentElement.style.alignItems = 'center';
     parentElement.style.textAlign = 'center';
-    parentElement.style.gap = '20px'; 
+    parentElement.style.gap = '20px';
 
-    let totalIngresos = 0;
-    let totalGastosSum = 0;
-    let totalInversionSum = 0;
+    const balanceDisplayContainer = document.createElement('div');
+    balanceDisplayContainer.className = 'dashboard-balance-display-area';
 
-    financialRecords.forEach(r => {
-        if (r.movimiento === 'INGRESOS') {
-            totalIngresos += r.monto;
-        } else if (r.movimiento === 'GASTOS') {
-            totalGastosSum += r.monto;
-        } else if (r.movimiento === 'INVERSION') {
-            totalInversionSum += r.monto;
+
+    if (balanceVisible) {
+        let totalIngresos = 0;
+        let totalGastos = 0;
+        let totalInversion = 0;
+
+        financialRecords.forEach(r => {
+            if (r.movimiento === 'INGRESOS') {
+                totalIngresos += r.monto;
+            } else if (r.movimiento === 'GASTOS') {
+                totalGastos += r.monto;
+            } else if (r.movimiento === 'INVERSION') {
+                totalInversion += r.monto;
+            }
+        });
+        const balanceGeneral = totalIngresos + totalGastos + totalInversion;
+
+        const balanceContainer = document.createElement('div');
+        balanceContainer.className = 'dashboard-balance-container';
+
+        const balanceTitle = document.createElement('h2');
+        balanceTitle.className = 'dashboard-balance-title';
+        balanceTitle.textContent = 'Balance General';
+
+        const balanceValue = document.createElement('p');
+        balanceValue.className = 'dashboard-balance-value';
+        balanceValue.textContent = `RD$${balanceGeneral.toLocaleString('es-DO', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+        if (balanceGeneral >= 0) {
+            balanceValue.style.color = CHART_COLORS.ingresos;
+        } else {
+            balanceValue.style.color = CHART_COLORS.gastos;
         }
-    });
 
-    const balanceGeneral = totalIngresos + totalGastosSum - totalInversionSum;
+        balanceContainer.appendChild(balanceTitle);
+        balanceContainer.appendChild(balanceValue);
+        balanceDisplayContainer.appendChild(balanceContainer);
 
-    const balanceContainer = document.createElement('div');
-    balanceContainer.className = 'dashboard-balance-container';
-
-    const balanceTitle = document.createElement('h2');
-    balanceTitle.className = 'dashboard-balance-title';
-    balanceTitle.textContent = 'Balance General';
-
-    const balanceValue = document.createElement('p');
-    balanceValue.className = 'dashboard-balance-value';
-    balanceValue.textContent = `RD$${balanceGeneral.toLocaleString('es-DO', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-    if (balanceGeneral >= 0) {
-        balanceValue.style.color = '#34C759';
     } else {
-        balanceValue.style.color = '#FF3B30';
-    }
+        const hiddenBalanceInfo = document.createElement('div');
+        hiddenBalanceInfo.className = 'dashboard-hidden-balance-info';
+        const infoText = document.createElement('p');
+        infoText.textContent = "--OCULTO--";
+        infoText.style.fontWeight = 'bold';
+        infoText.style.fontSize = '1.2em';
+        hiddenBalanceInfo.appendChild(infoText);
 
-    balanceContainer.appendChild(balanceTitle);
-    balanceContainer.appendChild(balanceValue);
-    parentElement.appendChild(balanceContainer);
+        const randomQuote = financialQuotes[Math.floor(Math.random() * financialQuotes.length)];
+        if (randomQuote) {
+            const quoteP = document.createElement('p');
+            quoteP.className = 'dashboard-balance-placeholder-quote';
+            quoteP.innerHTML = `<em>"${randomQuote.text}"</em><br>- ${randomQuote.author}`;
+            hiddenBalanceInfo.appendChild(quoteP);
+        }
+        balanceDisplayContainer.appendChild(hiddenBalanceInfo);
+    }
+    parentElement.appendChild(balanceDisplayContainer);
+
+    const toggleBalanceButton = document.createElement('button');
+    toggleBalanceButton.className = 'dashboard-toggle-balance-button primary-button';
+    toggleBalanceButton.textContent = 'Discreto';
+    toggleBalanceButton.onclick = () => {
+        balanceVisible = !balanceVisible;
+        renderApp();
+    };
+    parentElement.appendChild(toggleBalanceButton);
+
 
     // Financial Quotes Section
     const quoteBox = document.createElement('div');
@@ -665,14 +997,14 @@ function renderDashboardScreen(parentElement: HTMLElement): void {
         quoteAuthorEl.textContent = `- ${quote.author}`;
     }
 
-    if (quoteIntervalId) {
-        clearInterval(quoteIntervalId);
+    if (quoteIntervalId !== null) {
+        window.clearInterval(quoteIntervalId);
     }
 
     if (financialQuotes.length > 0) {
-        currentQuoteIndex = -1; // Start before the first to display it immediately
-        showNextQuote(); // Display the first quote immediately
-        quoteIntervalId = setInterval(showNextQuote, 20000); // Change quote every 20 seconds
+        currentQuoteIndex = -1;
+        showNextQuote();
+        quoteIntervalId = window.setInterval(showNextQuote, 20000);
     } else {
         quoteTextEl.textContent = "No hay frases disponibles en este momento.";
     }
@@ -689,26 +1021,29 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
     summaryCardsContainer.className = 'summary-cards-container';
 
     let totalIngresos = 0;
-    let totalGastosSum = 0;
-    let totalInversionSum = 0;
+    let totalGastos = 0;
+    let totalInversion = 0;
 
     financialRecords.forEach(r => {
         if (r.movimiento === 'INGRESOS') {
             totalIngresos += r.monto;
         } else if (r.movimiento === 'GASTOS') {
-            totalGastosSum += r.monto;
+            totalGastos += r.monto; // Stored as positive
         } else if (r.movimiento === 'INVERSION') {
-            totalInversionSum += r.monto;
+            totalInversion += r.monto; // Stored as positive
         }
     });
 
-    const balanceGeneral = totalIngresos + totalGastosSum - totalInversionSum;
+    const balanceGeneral = totalIngresos + totalGastos + totalInversion;
 
     summaryCardsContainer.appendChild(
         renderSummaryCardComponent('Ingresos Totales', totalIngresos, 'RD$', 'summary-ingresos')
     );
     summaryCardsContainer.appendChild(
-        renderSummaryCardComponent('Gastos Totales', Math.abs(totalGastosSum), 'RD$', 'summary-gastos')
+        renderSummaryCardComponent('Gastos Totales', totalGastos, 'RD$', 'summary-gastos')
+    );
+    summaryCardsContainer.appendChild(
+        renderSummaryCardComponent('Inversión Total', totalInversion, 'RD$', 'summary-inversion')
     );
     summaryCardsContainer.appendChild(
         renderSummaryCardComponent('Balance General', balanceGeneral, 'RD$', 'summary-balance')
@@ -815,8 +1150,35 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
         monthGroup.appendChild(monthSelect);
         filtersContainer.appendChild(monthGroup);
     }
-
     chartSectionCard.appendChild(filtersContainer);
+
+    // Chart Type Selector
+    const chartTypeSelectorContainer = document.createElement('div');
+    chartTypeSelectorContainer.className = 'chart-type-selector-container';
+    const chartTypeLabel = document.createElement('p');
+    chartTypeLabel.textContent = 'Seleccionar Tipo de Gráfico:';
+    chartTypeLabel.className = 'chart-type-label';
+    chartTypeSelectorContainer.appendChild(chartTypeLabel);
+
+    const chartTypeButtonsGroup = document.createElement('div');
+    chartTypeButtonsGroup.className = 'chart-type-buttons-group';
+
+    (['line', 'bar', 'pie'] as FinancialPanelChartType[]).forEach(type => {
+        const button = document.createElement('button');
+        button.textContent = type.charAt(0).toUpperCase() + type.slice(1) + (type === 'pie' ? ' (Total)' : '');
+        button.className = 'chart-type-button';
+        if (financialPanelChartType === type) {
+            button.classList.add('active');
+        }
+        button.onclick = () => {
+            financialPanelChartType = type;
+            renderApp();
+        };
+        chartTypeButtonsGroup.appendChild(button);
+    });
+    chartTypeSelectorContainer.appendChild(chartTypeButtonsGroup);
+    chartSectionCard.appendChild(chartTypeSelectorContainer);
+
 
     const chartContainer = document.createElement('div');
     chartContainer.className = 'dashboard-chart-container';
@@ -824,8 +1186,29 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
 
     parentElement.appendChild(chartSectionCard);
 
-    const chartData = getProcessedChartData();
-    renderTrendChartSVG(chartContainer, chartData);
+    const processedChartData = getProcessedChartData();
+
+    if (financialPanelChartType === 'line') {
+        renderTrendChartSVG(chartContainer, processedChartData);
+    } else if (financialPanelChartType === 'bar') {
+        renderBarChartSVG(chartContainer, processedChartData);
+    } else if (financialPanelChartType === 'pie') {
+        let totalPeriodIngresos = 0;
+        let totalPeriodGastos = 0;
+        let totalPeriodInversion = 0;
+        processedChartData.forEach(dp => {
+            totalPeriodIngresos += dp.ingresos;
+            totalPeriodGastos += dp.gastos; // Already absolute from getProcessedChartData
+            totalPeriodInversion += dp.inversion; // Already absolute
+        });
+        const pieChartDisplayData: PieChartSegment[] = [
+            { name: 'Ingresos', value: totalPeriodIngresos, color: CHART_COLORS.ingresos },
+            { name: 'Gastos', value: totalPeriodGastos, color: CHART_COLORS.gastos },
+            { name: 'Inversión', value: totalPeriodInversion, color: CHART_COLORS.inversion }
+        ].filter(segment => segment.value > 0);
+
+        renderPieChartSVG(chartContainer, pieChartDisplayData);
+    }
 }
 
 
@@ -834,6 +1217,61 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     header.className = 'header-title';
     header.innerHTML = 'Gestión de Registros';
     parentElement.appendChild(header);
+
+    const csvActionsContainer = document.createElement('div');
+    csvActionsContainer.className = 'import-export-actions';
+
+    const mainImportButton = document.createElement('button');
+    mainImportButton.textContent = 'Importar CSV (Registros)';
+    mainImportButton.className = 'csv-action-button';
+    mainImportButton.onclick = () => {
+        showFinancialImportOptions = !showFinancialImportOptions;
+        renderApp();
+    };
+    csvActionsContainer.appendChild(mainImportButton);
+
+    const exportButton = document.createElement('button');
+    exportButton.textContent = 'Exportar CSV (Registros)';
+    exportButton.className = 'csv-action-button';
+    exportButton.onclick = handleExportFinancialRecordsCSV;
+    csvActionsContainer.appendChild(exportButton);
+    parentElement.appendChild(csvActionsContainer);
+
+    if (showFinancialImportOptions) {
+        const importOptionsDiv = document.createElement('div');
+        importOptionsDiv.className = 'financial-import-options-container';
+
+        const replaceButton = document.createElement('button');
+        replaceButton.textContent = 'Sustituir todos los registros existentes con los del archivo';
+        replaceButton.className = 'financial-import-option-button';
+        replaceButton.onclick = () => {
+            financialImportMode = 'replace';
+            showFinancialImportOptions = false;
+            document.getElementById(CSV_FILE_INPUT_ID)?.click();
+            renderApp(); // To hide options immediately
+        };
+        importOptionsDiv.appendChild(replaceButton);
+
+        const appendButton = document.createElement('button');
+        appendButton.textContent = 'Agregar los registros del archivo a los que ya existen';
+        appendButton.className = 'financial-import-option-button';
+        appendButton.onclick = () => {
+            financialImportMode = 'append';
+            showFinancialImportOptions = false;
+            document.getElementById(CSV_FILE_INPUT_ID)?.click();
+            renderApp(); // To hide options immediately
+        };
+        importOptionsDiv.appendChild(appendButton);
+        parentElement.appendChild(importOptionsDiv);
+    }
+
+    const csvFileInput = document.createElement('input');
+    csvFileInput.type = 'file';
+    csvFileInput.id = CSV_FILE_INPUT_ID;
+    csvFileInput.accept = '.csv';
+    csvFileInput.style.display = 'none';
+    csvFileInput.onchange = handleImportFinancialRecordsCSVFile;
+    parentElement.appendChild(csvFileInput); // Needs to be in DOM for .click()
 
     const form = document.createElement('form');
     form.className = 'record-form';
@@ -897,8 +1335,8 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     const integranteUl = document.createElement('ul');
     integranteUl.className = 'selectable-list';
     const currentFilteredIntegrantes = newRecordIntegranteSearchText.trim() === ''
-        ? [...integrantes].sort((a,b) => a.nombre.localeCompare(b.nombre))
-        : integrantes.filter(inte => inte.nombre.toLowerCase().includes(newRecordIntegranteSearchText.toLowerCase()))
+        ? [...integrantes].sort((a,b) => a.nombre.localeCompare(b.nombre)) // Uses already uppercase names
+        : integrantes.filter(inte => normalizeStringForComparison(inte.nombre).includes(normalizeStringForComparison(newRecordIntegranteSearchText)))
                      .sort((a,b) => a.nombre.localeCompare(b.nombre));
 
     if (currentFilteredIntegrantes.length === 0 && newRecordIntegranteSearchText.trim() !== '') {
@@ -910,7 +1348,7 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
         currentFilteredIntegrantes.forEach(integrante => {
             const listItem = document.createElement('li');
             listItem.className = 'selectable-list-item';
-            listItem.textContent = integrante.nombre;
+            listItem.textContent = integrante.nombre; // Display uppercase name
             listItem.onclick = () => {
                 newRecordIntegranteId = integrante.id;
                 newRecordIntegranteSelectedName = integrante.nombre;
@@ -986,8 +1424,8 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     const razonUl = document.createElement('ul');
     razonUl.className = 'selectable-list';
     const currentFilteredRazones = newRecordRazonSearchText.trim() === ''
-        ? [...razones].sort((a,b) => a.descripcion.localeCompare(b.descripcion))
-        : razones.filter(raz => raz.descripcion.toLowerCase().includes(newRecordRazonSearchText.toLowerCase()))
+        ? [...razones].sort((a,b) => a.descripcion.localeCompare(b.descripcion)) // Uses already uppercase descriptions
+        : razones.filter(raz => normalizeStringForComparison(raz.descripcion).includes(normalizeStringForComparison(newRecordRazonSearchText)))
                    .sort((a,b) => a.descripcion.localeCompare(b.descripcion));
 
     if (currentFilteredRazones.length === 0 && newRecordRazonSearchText.trim() !== '') {
@@ -999,7 +1437,7 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
         currentFilteredRazones.forEach(razon => {
             const listItem = document.createElement('li');
             listItem.className = 'selectable-list-item';
-            listItem.textContent = razon.descripcion;
+            listItem.textContent = razon.descripcion; // Display uppercase description
             listItem.onclick = () => {
                 newRecordRazonId = razon.id;
                 newRecordRazonSelectedDescripcion = razon.descripcion;
@@ -1054,32 +1492,60 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
 
     parentElement.appendChild(form);
 
-    const csvActionsContainer = document.createElement('div');
-    csvActionsContainer.className = 'import-export-actions';
+    // Records Filter Section
+    const recordsFilterContainer = document.createElement('div');
+    recordsFilterContainer.className = 'records-filter-container';
 
-    const importButton = document.createElement('button');
-    importButton.textContent = 'Importar CSV (Registros)';
-    importButton.className = 'csv-action-button';
-    importButton.onclick = () => {
-        document.getElementById(CSV_FILE_INPUT_ID)?.click();
+    const filterFieldGroup = document.createElement('div');
+    filterFieldGroup.className = 'form-group';
+    const filterFieldLabel = document.createElement('label');
+    filterFieldLabel.setAttribute('for', 'record-filter-field');
+    filterFieldLabel.textContent = 'Filtrar por:';
+    const filterFieldSelect = document.createElement('select');
+    filterFieldSelect.id = 'record-filter-field';
+    filterFieldSelect.className = 'form-input';
+    filterFieldSelect.value = recordFilterField;
+    filterFieldSelect.onchange = (e) => {
+        recordFilterField = (e.target as HTMLSelectElement).value as RecordFilterField;
+        renderApp();
     };
-    csvActionsContainer.appendChild(importButton);
+    ([
+        { value: 'descripcion', text: 'Descripción' },
+        { value: 'fecha', text: 'Fecha' },
+        { value: 'integrante', text: 'Integrante' },
+        { value: 'movimiento', text: 'Movimiento' },
+        { value: 'razon', text: 'Razón' },
+    ] as {value: RecordFilterField, text: string}[]).forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.text;
+        filterFieldSelect.appendChild(option);
+    });
+    filterFieldGroup.appendChild(filterFieldLabel);
+    filterFieldGroup.appendChild(filterFieldSelect);
+    recordsFilterContainer.appendChild(filterFieldGroup);
 
-    const exportButton = document.createElement('button');
-    exportButton.textContent = 'Exportar CSV (Registros)';
-    exportButton.className = 'csv-action-button';
-    exportButton.onclick = handleExportFinancialRecordsCSV;
-    csvActionsContainer.appendChild(exportButton);
+    const filterTextGroup = document.createElement('div');
+    filterTextGroup.className = 'form-group';
+    const filterTextLabel = document.createElement('label');
+    filterTextLabel.setAttribute('for', RECORD_FILTER_TEXT_INPUT_ID);
+    filterTextLabel.textContent = 'Texto a buscar:';
+    const filterTextInput = document.createElement('input');
+    filterTextInput.type = 'text';
+    filterTextInput.id = RECORD_FILTER_TEXT_INPUT_ID;
+    filterTextInput.className = 'form-input';
+    filterTextInput.placeholder = 'Escriba para filtrar...';
+    filterTextInput.value = recordFilterText;
+    filterTextInput.oninput = (e) => {
+        recordFilterText = (e.target as HTMLInputElement).value;
+        focusTargetId = RECORD_FILTER_TEXT_INPUT_ID;
+        renderApp();
+    };
+    filterTextGroup.appendChild(filterTextLabel);
+    filterTextGroup.appendChild(filterTextInput);
+    recordsFilterContainer.appendChild(filterTextGroup);
 
-    const csvFileInput = document.createElement('input');
-    csvFileInput.type = 'file';
-    csvFileInput.id = CSV_FILE_INPUT_ID;
-    csvFileInput.accept = '.csv';
-    csvFileInput.style.display = 'none';
-    csvFileInput.onchange = handleImportFinancialRecordsCSVFile;
-    csvActionsContainer.appendChild(csvFileInput);
-
-    parentElement.appendChild(csvActionsContainer);
+    parentElement.appendChild(recordsFilterContainer);
 
 
     const tableContainer = document.createElement('div');
@@ -1089,7 +1555,7 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
 
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
-    ['Fecha', 'Integrante', 'Movimiento', 'Razón', 'Descripción', 'Monto'].forEach(text => {
+    ['Fecha', 'Integrante', 'Movimiento', 'Razon', 'Descripcion', 'Monto'].forEach(text => {
         const th = document.createElement('th');
         th.textContent = text;
         headerRow.appendChild(th);
@@ -1098,16 +1564,37 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
-    [...financialRecords].sort((a,b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime() || b.id - a.id).forEach(record => {
+    let displayRecords = [...financialRecords];
+    const normalizedFilterText = normalizeStringForComparison(recordFilterText);
+
+    if (normalizedFilterText) {
+        displayRecords = displayRecords.filter(record => {
+            let fieldValue = '';
+            const integrante = integrantes.find(i => i.id === record.integranteId);
+            const razon = razones.find(r => r.id === record.razonId);
+
+            switch (recordFilterField) {
+                case 'fecha': fieldValue = record.fecha; break;
+                case 'integrante': fieldValue = integrante ? integrante.nombre : ''; break;
+                case 'movimiento': fieldValue = record.movimiento; break;
+                case 'razon': fieldValue = razon ? razon.descripcion : ''; break;
+                case 'descripcion': fieldValue = record.descripcion; break;
+            }
+            return normalizeStringForComparison(fieldValue).includes(normalizedFilterText);
+        });
+    }
+
+
+    displayRecords.sort((a,b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime() || b.id - a.id).forEach(record => {
         const tr = document.createElement('tr');
         const integrante = integrantes.find(i => i.id === record.integranteId);
         const razon = razones.find(r => r.id === record.razonId);
 
         const cells = [
             record.fecha,
-            integrante ? integrante.nombre : 'Desconocido',
+            integrante ? integrante.nombre : 'Desconocido', // Display uppercase name
             record.movimiento.charAt(0) + record.movimiento.slice(1).toLowerCase(),
-            razon ? razon.descripcion : 'Desconocido',
+            razon ? razon.descripcion : 'Desconocido', // Display uppercase description
             record.descripcion,
             `RD$${record.monto.toLocaleString('es-DO', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         ];
@@ -1141,7 +1628,7 @@ function handleAddRecord() {
         movimiento: newRecordMovimiento,
         razonId: newRecordRazonId,
         descripcion: newRecordDescripcion.trim(),
-        monto: montoValue
+        monto: montoValue // Stored as a positive number
     };
 
     financialRecords.push(newRecord);
@@ -1170,7 +1657,7 @@ function escapeCsvValue(value: any): string {
 }
 
 function triggerCsvDownload(csvString: string, fileName: string): void {
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' }); // Added BOM for Excel
     const link = document.createElement('a');
     if (link.download !== undefined) {
         const url = URL.createObjectURL(blob);
@@ -1192,7 +1679,7 @@ function handleExportFinancialRecordsCSV() {
         return;
     }
 
-    const headers = ['Fecha', 'Integrante', 'Movimiento', 'Razón', 'Descripción Detallada', 'Monto'];
+    const headers = ['Fecha', 'Integrante', 'Movimiento', 'Razon', 'Descripcion Detallada', 'Monto'];
     const csvRows = [headers.join(',')];
 
     financialRecords.forEach(record => {
@@ -1242,20 +1729,7 @@ function parseCsvLine(line: string): string[] {
 function parseFlexibleDate(dateString: string): string | null {
     dateString = dateString.trim();
 
-    const dmyMatch = dateString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (dmyMatch) {
-        const day = parseInt(dmyMatch[1], 10);
-        const month = parseInt(dmyMatch[2], 10);
-        const year = parseInt(dmyMatch[3], 10);
-
-        if (year > 1000 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-            const dateObj = new Date(year, month - 1, day);
-            if (dateObj.getFullYear() === year && dateObj.getMonth() === month - 1 && dateObj.getDate() === day) {
-                return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            }
-        }
-    }
-
+    // Try YYYY-MM-DD (standard)
     const ymdMatchStrict = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (ymdMatchStrict) {
         const year = parseInt(ymdMatchStrict[1], 10);
@@ -1269,6 +1743,22 @@ function parseFlexibleDate(dateString: string): string | null {
         }
     }
 
+    // Try DD/MM/YYYY
+    const dmyMatch = dateString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (dmyMatch) {
+        const day = parseInt(dmyMatch[1], 10);
+        const month = parseInt(dmyMatch[2], 10);
+        const year = parseInt(dmyMatch[3], 10);
+
+        if (year > 1000 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+            const dateObj = new Date(year, month - 1, day);
+            if (dateObj.getFullYear() === year && dateObj.getMonth() === month - 1 && dateObj.getDate() === day) {
+                return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            }
+        }
+    }
+    
+    // Try YYYY-M-D or YYYY-MM-D or YYYY-M-DD (less strict YYYY-MM-DD)
     if (dateString.includes('-')) {
         const parts = dateString.split('-');
         if (parts.length === 3) {
@@ -1320,38 +1810,48 @@ function handleImportFinancialRecordsCSVFile(event: Event) {
         }
 
         const headerLine = lines[0];
-        const headersFromCsv = parseCsvLine(headerLine).map(h => h.trim().toLowerCase());
-        const expectedHeaders = ['fecha', 'integrante', 'movimiento', 'razón', 'descripción detallada', 'monto'];
-
+        const headersFromCsv = parseCsvLine(headerLine).map(h => normalizeStringForComparison(h));
+        const expectedHeadersNormalized = ['FECHA', 'INTEGRANTE', 'MOVIMIENTO', 'RAZON', 'DESCRIPCION DETALLADA', 'MONTO'].map(normalizeStringForComparison);
+        
         const headerMap: { [key: string]: number } = {};
         headersFromCsv.forEach((h, i) => headerMap[h] = i);
 
-        const missingHeaders = expectedHeaders.filter(eh => headerMap[eh] === undefined);
+        const missingHeaders = expectedHeadersNormalized.filter(eh => headerMap[eh] === undefined);
         if (missingHeaders.length > 0) {
-             alert(`Encabezados faltantes o incorrectos en el CSV de registros. Esperados: ${expectedHeaders.join(', ')}. Encontrados: ${headersFromCsv.join(', ')}.\nFaltantes: ${missingHeaders.join(', ')}`);
+             alert(`Encabezados faltantes o incorrectos en el CSV de registros. Esperados: ${expectedHeadersNormalized.join(', ')}. Encontrados: ${headersFromCsv.join(', ')}.\nFaltantes: ${missingHeaders.join(', ')}`);
             fileInput.value = '';
             return;
         }
 
 
+        if (financialImportMode === 'replace') {
+            financialRecords = [];
+            nextRecordId = 1; // Reset ID for new set of records
+        }
+
         let importedCount = 0;
         let skippedCount = 0;
         const newRecordsBatch: FinancialRecord[] = [];
+        const tempNextIdForImport = financialRecords.length > 0 ? Math.max(0, ...financialRecords.map(r => r.id)) + 1 : 1;
+
 
         for (let i = 1; i < lines.length; i++) {
             const values = parseCsvLine(lines[i]);
-            if (values.length !== expectedHeaders.length) {
-                console.warn(`Fila ${i+1} (registros) omitida: número incorrecto de columnas. Esperadas ${expectedHeaders.length}, obtenidas ${values.length}. Contenido: ${lines[i]}`);
+            if (values.length < expectedHeadersNormalized.length) { 
+                console.warn(`Fila ${i+1} (registros) omitida: número incorrecto de columnas. Esperadas ${expectedHeadersNormalized.length}, obtenidas ${values.length}. Contenido: ${lines[i]}`);
                 skippedCount++;
                 continue;
             }
 
-            const rawFecha = values[headerMap['fecha']].trim();
-            const integranteNombre = values[headerMap['integrante']].trim();
-            const movimientoTipo = values[headerMap['movimiento']].trim().toUpperCase() as 'INGRESOS' | 'GASTOS' | 'INVERSION';
-            const razonDescripcion = values[headerMap['razón']].trim();
-            const descripcionDetallada = values[headerMap['descripción detallada']].trim();
-            const montoStr = values[headerMap['monto']].trim();
+
+            const rawFecha = values[headerMap['FECHA']].trim();
+            const csvIntegranteNombreRaw = values[headerMap['INTEGRANTE']].trim();
+            const csvIntegranteNombreUpper = csvIntegranteNombreRaw.toUpperCase();
+            const movimientoTipo = values[headerMap['MOVIMIENTO']].trim().toUpperCase() as 'INGRESOS' | 'GASTOS' | 'INVERSION';
+            const csvRazonDescripcionRaw = values[headerMap['RAZON']].trim();
+            const csvRazonDescripcionUpper = csvRazonDescripcionRaw.toUpperCase();
+            const descripcionDetallada = values[headerMap['DESCRIPCION DETALLADA']].trim();
+            const montoStr = values[headerMap['MONTO']].trim().replace(/,/g, ''); // Remove commas from amount for parseFloat
 
             const fecha = parseFlexibleDate(rawFecha);
             if (!fecha) {
@@ -1360,12 +1860,22 @@ function handleImportFinancialRecordsCSVFile(event: Event) {
                 continue;
             }
 
-            const integrante = integrantes.find(inte => inte.nombre.toLowerCase() === integranteNombre.toLowerCase());
-            if (!integrante) {
-                console.warn(`Fila ${i+1} (registros) omitida: Integrante '${integranteNombre}' no encontrado.`);
-                skippedCount++;
-                continue;
+            let integranteId: number | null = null;
+            let finalIntegrante: {id: number, nombre: string} | undefined = undefined;
+
+            const normalizedCsvIntegrante = normalizeStringForComparison(csvIntegranteNombreUpper);
+            finalIntegrante = integrantes.find(inte => normalizeStringForComparison(inte.nombre) === normalizedCsvIntegrante);
+
+            if (!finalIntegrante) {
+                // Auto-create new integrante if not found after normalization
+                const newIntegrante = { id: nextIntegranteId++, nombre: csvIntegranteNombreUpper };
+                integrantes.push(newIntegrante);
+                // saveIntegrantesToLocalStorage(); // Save after batch processing
+                finalIntegrante = newIntegrante;
+                console.log(`Fila ${i+1} (registros): Integrante '${csvIntegranteNombreRaw}' ('${csvIntegranteNombreUpper}') no encontrado. Auto-creado con ID ${finalIntegrante.id}.`);
             }
+            integranteId = finalIntegrante.id;
+
 
             if (!['INGRESOS', 'GASTOS', 'INVERSION'].includes(movimientoTipo)) {
                 console.warn(`Fila ${i+1} (registros) omitida: Tipo de Movimiento inválido '${movimientoTipo}'.`);
@@ -1373,12 +1883,22 @@ function handleImportFinancialRecordsCSVFile(event: Event) {
                 continue;
             }
 
-            const razon = razones.find(raz => raz.descripcion.toLowerCase() === razonDescripcion.toLowerCase());
-            if (!razon) {
-                console.warn(`Fila ${i+1} (registros) omitida: Razón '${razonDescripcion}' no encontrada.`);
-                skippedCount++;
-                continue;
+            let razonId: number | null = null;
+            let finalRazon: {id: number, descripcion: string} | undefined = undefined;
+
+            const normalizedCsvRazon = normalizeStringForComparison(csvRazonDescripcionUpper);
+            finalRazon = razones.find(raz => normalizeStringForComparison(raz.descripcion) === normalizedCsvRazon);
+
+            if (!finalRazon) {
+                 // Auto-create new razon if not found after normalization
+                const newRazon = { id: nextReasonId++, descripcion: csvRazonDescripcionUpper };
+                razones.push(newRazon);
+                // saveRazonesToLocalStorage(); // Save after batch processing
+                finalRazon = newRazon;
+                console.log(`Fila ${i+1} (registros): Razon '${csvRazonDescripcionRaw}' ('${csvRazonDescripcionUpper}') no encontrada. Auto-creada con ID ${finalRazon.id}.`);
             }
+            razonId = finalRazon.id;
+
 
             const monto = parseFloat(montoStr);
             if (isNaN(monto)) {
@@ -1388,27 +1908,32 @@ function handleImportFinancialRecordsCSVFile(event: Event) {
             }
 
             newRecordsBatch.push({
-                id: 0,
+                id: 0, // Placeholder, will be assigned before final push
                 fecha: fecha,
-                integranteId: integrante.id,
+                integranteId: integranteId,
                 movimiento: movimientoTipo,
-                razonId: razon.id,
+                razonId: razonId,
                 descripcion: descripcionDetallada,
                 monto: monto
             });
-            importedCount++;
         }
 
         if (newRecordsBatch.length > 0) {
+             let currentBatchNextId = tempNextIdForImport;
             newRecordsBatch.forEach(record => {
-                record.id = nextRecordId++;
+                record.id = currentBatchNextId++; 
                 financialRecords.push(record);
+                importedCount++;
             });
+            nextRecordId = currentBatchNextId; // Update global nextRecordId after batch
             saveFinancialRecords();
+            saveIntegrantesToLocalStorage(); // Save any auto-created integrantes
+            saveRazonesToLocalStorage(); // Save any auto-created razones
         }
 
         alert(`${importedCount} registro(s) financiero(s) importado(s) con éxito.\n${skippedCount} fila(s) omitida(s). Revise la consola para detalles.`);
-        fileInput.value = '';
+        fileInput.value = ''; // Clear file input
+        // financialImportMode = 'append'; // Reset to default mode for next time (already default)
         renderApp();
     };
 
@@ -1417,7 +1942,7 @@ function handleImportFinancialRecordsCSVFile(event: Event) {
         fileInput.value = '';
     };
 
-    reader.readAsText(file);
+    reader.readAsText(file); 
 }
 
 function handleExportRazonesCSV() {
@@ -1454,24 +1979,35 @@ function handleImportRazonesCSVFile(event: Event) {
         if (!text) { alert('El archivo CSV de razones está vacío.'); fileInput.value = ''; return; }
 
         const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
-        if (lines.length < 1) {
+        if (lines.length < 1) { 
             alert('El archivo CSV de razones no contiene datos válidos.'); fileInput.value = ''; return;
         }
 
         const headerLine = lines[0];
-        const headersFromCsv = parseCsvLine(headerLine).map(h => h.trim().toLowerCase());
-        const idColIdx = headersFromCsv.indexOf('id');
-        const descColIdx = headersFromCsv.indexOf('descripcion');
+        const headersFromCsv = parseCsvLine(headerLine).map(h => normalizeStringForComparison(h));
+        const idColIdx = headersFromCsv.indexOf('ID');
+        const descColIdx = headersFromCsv.indexOf('DESCRIPCION');
 
-        if (descColIdx === -1) {
-            alert(`Encabezado requerido 'Descripcion' no encontrado en el CSV de razones. Encontrados: ${headersFromCsv.join(', ')}`);
+        if (descColIdx === -1) { 
+            alert(`Encabezado requerido 'descripcion' no encontrado en el CSV de razones. Encontrados: ${headersFromCsv.join(', ')}`);
             fileInput.value = ''; return;
+        }
+        
+        if (razonImportMode === 'replace') {
+            razones = [];
+            nextReasonId = 1;
         }
 
         let importedCount = 0, updatedCount = 0, skippedCount = 0;
+        let tempNextReasonIdForImport = razones.length > 0 ? Math.max(0, ...razones.map(r => r.id)) + 1 : 1;
+
 
         for (let i = 1; i < lines.length; i++) {
             const values = parseCsvLine(lines[i]);
+             if (values.length <= descColIdx && (idColIdx === -1 || values.length <= idColIdx) ) { 
+                console.warn(`Fila ${i+1} (razones) omitida: Muy pocas columnas. Contenido: ${lines[i]}`);
+                skippedCount++; continue;
+            }
             const rawDesc = values[descColIdx]?.trim().toUpperCase();
 
             if (!rawDesc) {
@@ -1479,47 +2015,56 @@ function handleImportRazonesCSVFile(event: Event) {
                 skippedCount++; continue;
             }
 
-            const csvIdStr = (idColIdx !== -1) ? values[idColIdx]?.trim() : null;
+            const csvIdStr = (idColIdx !== -1 && values.length > idColIdx) ? values[idColIdx]?.trim() : null;
             let csvId: number | null = null;
             if (csvIdStr) {
                 const parsed = parseInt(csvIdStr, 10);
-                if (!isNaN(parsed) && parsed > 0) csvId = parsed;
-                else console.warn(`Fila ${i+1} (razones): ID '${csvIdStr}' inválido. Se tratará como nueva si la descripción es única.`);
+                if (!isNaN(parsed) && parsed > 0) {
+                    csvId = parsed;
+                } else {
+                     console.warn(`Fila ${i+1} (razones): ID '${csvIdStr}' inválido. Se tratará como nueva si la descripción es única.`);
+                }
             }
 
-            if (csvId !== null) {
-                const existingRazon = razones.find(r => r.id === csvId);
-                if (existingRazon) {
-                    if (existingRazon.descripcion.toUpperCase() !== rawDesc) {
-                        if (razones.some(r => r.id !== csvId && r.descripcion.toUpperCase() === rawDesc)) {
-                            console.warn(`Fila ${i+1} (razones) omitida: Nueva descripción '${rawDesc}' para ID ${csvId} ya existe con otro ID.`);
-                            skippedCount++;
-                        } else {
-                            existingRazon.descripcion = rawDesc;
-                            updatedCount++;
-                        }
-                    }
-                } else {
-                    if (razones.some(r => r.descripcion.toUpperCase() === rawDesc)) {
-                        console.warn(`Fila ${i+1} (razones) omitida: Descripción '${rawDesc}' para nuevo ID ${csvId} ya existe.`);
+            const normalizedRawDesc = normalizeStringForComparison(rawDesc);
+            const existingRazonById = csvId !== null ? razones.find(r => r.id === csvId) : null;
+            // When replacing, existingRazonByDesc will only find matches within the current CSV batch if IDs are not unique
+            const existingRazonByDesc = razones.find(r => normalizeStringForComparison(r.descripcion) === normalizedRawDesc && (existingRazonById ? r.id !== existingRazonById.id : true));
+
+
+            if (existingRazonById) { 
+                if (existingRazonById.descripcion !== rawDesc) { 
+                    if (razones.some(r => r.id !== csvId && normalizeStringForComparison(r.descripcion) === normalizedRawDesc)) {
+                        console.warn(`Fila ${i+1} (razones) omitida: Nueva descripción '${rawDesc}' para ID ${csvId} ya existe con otro ID.`);
                         skippedCount++;
                     } else {
-                        razones.push({ id: csvId, descripcion: rawDesc });
-                        nextReasonId = Math.max(nextReasonId, csvId + 1);
-                        importedCount++;
+                        existingRazonById.descripcion = rawDesc; 
+                        updatedCount++;
                     }
-                }
-            } else {
-                if (razones.some(r => r.descripcion.toUpperCase() === rawDesc)) {
-                    console.warn(`Fila ${i+1} (razones) omitida: Descripción '${rawDesc}' ya existe (sin ID válido).`);
-                    skippedCount++;
-                } else {
-                    razones.push({ id: nextReasonId++, descripcion: rawDesc });
-                    importedCount++;
-                }
+                } 
+            } else if (existingRazonByDesc) { 
+                console.warn(`Fila ${i+1} (razones) omitida: Descripción '${rawDesc}' ya existe (ID en CSV: ${csvIdStr || 'N/A'}, ID de existente: ${existingRazonByDesc.id}). No se puede asignar nuevo ID si descripción ya existe.`);
+                skippedCount++;
+            } else { 
+                 let newIdToUse = csvId;
+                 if (newIdToUse === null || razones.some(r => r.id === newIdToUse)) { // If no CSV ID or CSV ID is already taken
+                     newIdToUse = tempNextReasonIdForImport++;
+                     while(razones.some(r => r.id === newIdToUse)) { // Ensure really unique ID
+                        newIdToUse = tempNextReasonIdForImport++;
+                     }
+                 }
+
+                razones.push({ id: newIdToUse, descripcion: rawDesc });
+                tempNextReasonIdForImport = Math.max(tempNextReasonIdForImport, newIdToUse + 1);
+                importedCount++;
             }
         }
-        if (importedCount > 0 || updatedCount > 0) saveRazonesToLocalStorage();
+        if (importedCount > 0 || updatedCount > 0) {
+             saveRazonesToLocalStorage(); 
+        } else if (razonImportMode === 'replace' && importedCount === 0 && updatedCount === 0) {
+            // If replace mode and nothing was imported/updated, ensure localStorage is also cleared
+            saveRazonesToLocalStorage();
+        }
         alert(`Razones importadas: ${importedCount}, actualizadas: ${updatedCount}, omitidas: ${skippedCount}. Revise consola para detalles.`);
         fileInput.value = '';
         renderApp();
@@ -1541,7 +2086,10 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
     const importButtonCsv = document.createElement('button');
     importButtonCsv.textContent = 'Importar CSV (Razones)';
     importButtonCsv.className = 'csv-action-button';
-    importButtonCsv.onclick = () => document.getElementById(RAZON_CSV_FILE_INPUT_ID)?.click();
+    importButtonCsv.onclick = () => {
+        showRazonImportOptions = !showRazonImportOptions;
+        renderApp();
+    };
     csvActionsContainer.appendChild(importButtonCsv);
 
     const exportButtonCsv = document.createElement('button');
@@ -1549,6 +2097,35 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
     exportButtonCsv.className = 'csv-action-button';
     exportButtonCsv.onclick = handleExportRazonesCSV;
     csvActionsContainer.appendChild(exportButtonCsv);
+    parentElement.appendChild(csvActionsContainer);
+
+    if (showRazonImportOptions) {
+        const importOptionsDiv = document.createElement('div');
+        importOptionsDiv.className = 'financial-import-options-container'; // Reuse class
+
+        const replaceButton = document.createElement('button');
+        replaceButton.textContent = 'Sustituir todas las razones existentes con las del archivo';
+        replaceButton.className = 'financial-import-option-button';
+        replaceButton.onclick = () => {
+            razonImportMode = 'replace';
+            showRazonImportOptions = false;
+            document.getElementById(RAZON_CSV_FILE_INPUT_ID)?.click();
+            renderApp();
+        };
+        importOptionsDiv.appendChild(replaceButton);
+
+        const appendButton = document.createElement('button');
+        appendButton.textContent = 'Agregar las razones del archivo a las que ya existen';
+        appendButton.className = 'financial-import-option-button';
+        appendButton.onclick = () => {
+            razonImportMode = 'append';
+            showRazonImportOptions = false;
+            document.getElementById(RAZON_CSV_FILE_INPUT_ID)?.click();
+            renderApp();
+        };
+        importOptionsDiv.appendChild(appendButton);
+        parentElement.appendChild(importOptionsDiv);
+    }
 
     const csvFileInput = document.createElement('input');
     csvFileInput.type = 'file';
@@ -1556,8 +2133,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
     csvFileInput.accept = '.csv';
     csvFileInput.style.display = 'none';
     csvFileInput.onchange = handleImportRazonesCSVFile;
-    csvActionsContainer.appendChild(csvFileInput);
-    parentElement.appendChild(csvActionsContainer);
+    parentElement.appendChild(csvFileInput);
 
 
     const searchContainer = document.createElement('div');
@@ -1595,7 +2171,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
     addButton.onclick = () => {
         const trimmedText = newReasonInputText.trim().toUpperCase();
         if (trimmedText) {
-            if (razones.some(r => r.descripcion.toUpperCase() === trimmedText)) {
+            if (razones.some(r => normalizeStringForComparison(r.descripcion) === normalizeStringForComparison(trimmedText))) {
                 alert('Esta razón ya existe.');
                 return;
             }
@@ -1650,7 +2226,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
     const listContainer = document.createElement('ul');
     listContainer.className = 'razones-list';
     let filteredRazones = razones.filter(razon =>
-        razon.descripcion.toLowerCase().includes(razonesSearchTerm.toLowerCase())
+        normalizeStringForComparison(razon.descripcion).includes(normalizeStringForComparison(razonesSearchTerm))
     );
 
     const sortedRazones = [...filteredRazones];
@@ -1677,7 +2253,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
             const editInput = document.createElement('input');
             editInput.setAttribute('type', 'text');
             editInput.className = 'razon-input';
-            editInput.value = editReasonInputText;
+            editInput.value = editReasonInputText; 
             editInput.oninput = (e) => editReasonInputText = (e.target as HTMLInputElement).value;
             const EDIT_INPUT_ID = `edit-razon-${razon.id}`;
             editInput.id = EDIT_INPUT_ID;
@@ -1689,7 +2265,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
             saveButton.onclick = () => {
                 const trimmedEditText = editReasonInputText.trim().toUpperCase();
                 if (trimmedEditText) {
-                    if (razones.some(r => r.descripcion.toUpperCase() === trimmedEditText && r.id !== razon.id)) {
+                    if (razones.some(r => normalizeStringForComparison(r.descripcion) === normalizeStringForComparison(trimmedEditText) && r.id !== razon.id)) {
                         alert('Ya existe otra razón con esta descripción.');
                         return;
                     }
@@ -1724,7 +2300,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
             editButton.setAttribute('aria-label', 'Editar Razón');
             editButton.onclick = () => {
                 editingReasonId = razon.id;
-                editReasonInputText = razon.descripcion;
+                editReasonInputText = razon.descripcion; 
                 renderApp();
             };
             const deleteButton = document.createElement('button');
@@ -1761,7 +2337,7 @@ function handleExportIntegrantesCSV() {
     integrantes.forEach(integrante => {
         const row = [
             escapeCsvValue(integrante.id),
-            escapeCsvValue(integrante.nombre)
+            escapeCsvValue(integrante.nombre) // Export uppercase name
         ];
         csvRows.push(row.join(','));
     });
@@ -1790,19 +2366,57 @@ function handleImportIntegrantesCSVFile(event: Event) {
         }
 
         const headerLine = lines[0];
-        const headersFromCsv = parseCsvLine(headerLine).map(h => h.trim().toLowerCase());
-        const idColIdx = headersFromCsv.indexOf('id');
-        const nameColIdx = headersFromCsv.indexOf('nombre');
+        const headersFromCsv = parseCsvLine(headerLine).map(h => normalizeStringForComparison(h));
+        const idColIdx = headersFromCsv.indexOf('ID');
+        const nameColIdx = headersFromCsv.indexOf('NOMBRE');
 
         if (nameColIdx === -1) {
-            alert(`Encabezado requerido 'Nombre' no encontrado en el CSV de integrantes. Encontrados: ${headersFromCsv.join(', ')}`);
+            alert(`Encabezado requerido 'nombre' no encontrado en el CSV de integrantes. Encontrados: ${headersFromCsv.join(', ')}`);
             fileInput.value = ''; return;
         }
 
+        if (integranteImportMode === 'replace') {
+            integrantes = [];
+            nextIntegranteId = 1; 
+        }
+
         let importedCount = 0, updatedCount = 0, skippedCount = 0;
+        let tempNextIntegranteIdForImport = integrantes.length > 0 ? Math.max(0, ...integrantes.map(i => i.id)) + 1 : 1;
+        
+        const protectedIdsToPreserveOrUpdate = [
+            { id: 1, defaultName: "LOS FORASTEROS" },
+            { id: 2, defaultName: "INVITADOS" }
+        ];
+
+        if (integranteImportMode === 'replace') {
+            // Ensure protected IDs are handled if not in CSV during replace
+            protectedIdsToPreserveOrUpdate.forEach(p => {
+                if (!integrantes.find(inte => inte.id === p.id)) {
+                     // Check if CSV will add it later, if not, add default
+                     const csvLineForProtected = lines.slice(1).find(line => {
+                         const values = parseCsvLine(line);
+                         const csvIdStr = (idColIdx !== -1 && values.length > idColIdx) ? values[idColIdx]?.trim() : null;
+                         if (csvIdStr) {
+                            const parsed = parseInt(csvIdStr, 10);
+                            return !isNaN(parsed) && parsed === p.id;
+                         }
+                         return false;
+                     });
+                     if(!csvLineForProtected) {
+                        integrantes.push({id: p.id, nombre: p.defaultName});
+                     }
+                }
+            });
+            tempNextIntegranteIdForImport = Math.max(tempNextIntegranteIdForImport, ...protectedIdsToPreserveOrUpdate.map(p=>p.id), 0) + 1;
+        }
+
 
         for (let i = 1; i < lines.length; i++) {
             const values = parseCsvLine(lines[i]);
+            if (values.length <= nameColIdx && (idColIdx === -1 || values.length <= idColIdx) ) {
+                console.warn(`Fila ${i+1} (integrantes) omitida: Muy pocas columnas. Contenido: ${lines[i]}`);
+                skippedCount++; continue;
+            }
             const rawName = values[nameColIdx]?.trim().toUpperCase();
 
             if (!rawName) {
@@ -1810,47 +2424,79 @@ function handleImportIntegrantesCSVFile(event: Event) {
                 skippedCount++; continue;
             }
 
-            const csvIdStr = (idColIdx !== -1) ? values[idColIdx]?.trim() : null;
+            const csvIdStr = (idColIdx !== -1 && values.length > idColIdx) ? values[idColIdx]?.trim() : null;
             let csvId: number | null = null;
             if (csvIdStr) {
                 const parsed = parseInt(csvIdStr, 10);
-                if (!isNaN(parsed) && parsed > 0) csvId = parsed;
-                else console.warn(`Fila ${i+1} (integrantes): ID '${csvIdStr}' inválido. Se tratará como nuevo si el nombre es único.`);
+                if (!isNaN(parsed) && parsed > 0) {
+                     csvId = parsed;
+                } else {
+                     console.warn(`Fila ${i+1} (integrantes): ID '${csvIdStr}' inválido. Se tratará como nuevo si el nombre es único.`);
+                }
             }
 
-            if (csvId !== null) {
-                const existingIntegrante = integrantes.find(inte => inte.id === csvId);
-                if (existingIntegrante) {
-                    if (existingIntegrante.nombre.toUpperCase() !== rawName) {
-                        if (integrantes.some(inte => inte.id !== csvId && inte.nombre.toUpperCase() === rawName)) {
-                            console.warn(`Fila ${i+1} (integrantes) omitida: Nuevo nombre '${rawName}' para ID ${csvId} ya existe con otro ID.`);
-                            skippedCount++;
+            const normalizedRawName = normalizeStringForComparison(rawName);
+            const existingIntegranteById = csvId !== null ? integrantes.find(inte => inte.id === csvId) : null;
+            const existingIntegranteByName = integrantes.find(inte => normalizeStringForComparison(inte.nombre) === normalizedRawName && (existingIntegranteById ? inte.id !== existingIntegranteById.id : true));
+
+
+            if (existingIntegranteById) { 
+                if (existingIntegranteById.nombre !== rawName) { 
+                    if (integrantes.some(inte => inte.id !== csvId && normalizeStringForComparison(inte.nombre) === normalizedRawName)) {
+                        console.warn(`Fila ${i+1} (integrantes) omitida: Nuevo nombre '${rawName}' para ID ${csvId} ya existe con otro ID.`);
+                        skippedCount++;
+                    } else {
+                        if ((existingIntegranteById.id === 1 || existingIntegranteById.id === 2) && rawName === '') {
+                             console.warn(`Fila ${i+1} (integrantes): No se puede asignar un nombre vacío al integrante protegido ID ${existingIntegranteById.id}. Se mantiene nombre actual.`);
+                             skippedCount++;
                         } else {
-                            existingIntegrante.nombre = rawName;
+                            existingIntegranteById.nombre = rawName; 
                             updatedCount++;
                         }
                     }
+                } 
+            } else if (existingIntegranteByName) { 
+                console.warn(`Fila ${i+1} (integrantes) omitida: Nombre '${rawName}' ya existe (ID en CSV: ${csvIdStr || 'N/A'}, ID de existente: ${existingIntegranteByName.id}). No se puede asignar nuevo ID si nombre ya existe.`);
+                skippedCount++;
+            } else { 
+                let newIdToUse = csvId;
+                 if (newIdToUse === null || integrantes.some(inte => inte.id === newIdToUse)) {
+                     newIdToUse = tempNextIntegranteIdForImport++;
+                     while(integrantes.some(inte => inte.id === newIdToUse)) {
+                        newIdToUse = tempNextIntegranteIdForImport++;
+                     }
+                 }
+                if ((newIdToUse === 1 || newIdToUse === 2) && rawName === '') {
+                     console.warn(`Fila ${i+1} (integrantes): No se puede crear integrante protegido ID ${newIdToUse} con nombre vacío. Omitido.`);
+                     skippedCount++;
                 } else {
-                    if (integrantes.some(inte => inte.nombre.toUpperCase() === rawName)) {
-                        console.warn(`Fila ${i+1} (integrantes) omitida: Nombre '${rawName}' para nuevo ID ${csvId} ya existe.`);
-                        skippedCount++;
-                    } else {
-                        integrantes.push({ id: csvId, nombre: rawName });
-                        nextIntegranteId = Math.max(nextIntegranteId, csvId + 1);
-                        importedCount++;
-                    }
-                }
-            } else {
-                if (integrantes.some(inte => inte.nombre.toUpperCase() === rawName)) {
-                    console.warn(`Fila ${i+1} (integrantes) omitida: Nombre '${rawName}' ya existe (sin ID válido).`);
-                    skippedCount++;
-                } else {
-                    integrantes.push({ id: nextIntegranteId++, nombre: rawName });
+                    integrantes.push({ id: newIdToUse, nombre: rawName });
+                    tempNextIntegranteIdForImport = Math.max(tempNextIntegranteIdForImport, newIdToUse + 1);
                     importedCount++;
                 }
             }
         }
-        if (importedCount > 0 || updatedCount > 0) saveIntegrantesToLocalStorage();
+        
+        if (integranteImportMode === 'replace') {
+             protectedIdsToPreserveOrUpdate.forEach(p => {
+                const existing = integrantes.find(inte => inte.id === p.id);
+                if (!existing) {
+                    integrantes.push({id: p.id, nombre: p.defaultName});
+                    importedCount++; 
+                } else if (existing.nombre === '') { // If CSV tried to make it blank
+                    existing.nombre = p.defaultName; // Restore default name
+                    updatedCount++;
+                }
+            });
+        }
+
+
+        if (importedCount > 0 || updatedCount > 0) {
+            saveIntegrantesToLocalStorage(); 
+        } else if (integranteImportMode === 'replace' && importedCount === 0 && updatedCount === 0) {
+             saveIntegrantesToLocalStorage();
+        }
+
         alert(`Integrantes importados: ${importedCount}, actualizados: ${updatedCount}, omitidos: ${skippedCount}. Revise consola para detalles.`);
         fileInput.value = '';
         renderApp();
@@ -1872,7 +2518,10 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     const importButtonCsv = document.createElement('button');
     importButtonCsv.textContent = 'Importar CSV (Integrantes)';
     importButtonCsv.className = 'csv-action-button';
-    importButtonCsv.onclick = () => document.getElementById(INTEGRANTE_CSV_FILE_INPUT_ID)?.click();
+    importButtonCsv.onclick = () => {
+        showIntegranteImportOptions = !showIntegranteImportOptions;
+        renderApp();
+    };
     csvActionsContainer.appendChild(importButtonCsv);
 
     const exportButtonCsv = document.createElement('button');
@@ -1880,6 +2529,37 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     exportButtonCsv.className = 'csv-action-button';
     exportButtonCsv.onclick = handleExportIntegrantesCSV;
     csvActionsContainer.appendChild(exportButtonCsv);
+    parentElement.appendChild(csvActionsContainer);
+
+
+    if (showIntegranteImportOptions) {
+        const importOptionsDiv = document.createElement('div');
+        importOptionsDiv.className = 'financial-import-options-container'; // Reuse class
+
+        const replaceButton = document.createElement('button');
+        replaceButton.textContent = 'Sustituir todos los integrantes con los del archivo';
+        replaceButton.className = 'financial-import-option-button';
+        replaceButton.onclick = () => {
+            integranteImportMode = 'replace';
+            showIntegranteImportOptions = false;
+            document.getElementById(INTEGRANTE_CSV_FILE_INPUT_ID)?.click();
+            renderApp();
+        };
+        importOptionsDiv.appendChild(replaceButton);
+
+        const appendButton = document.createElement('button');
+        appendButton.textContent = 'Agregar los integrantes del archivo a los existentes';
+        appendButton.className = 'financial-import-option-button';
+        appendButton.onclick = () => {
+            integranteImportMode = 'append';
+            showIntegranteImportOptions = false;
+            document.getElementById(INTEGRANTE_CSV_FILE_INPUT_ID)?.click();
+            renderApp();
+        };
+        importOptionsDiv.appendChild(appendButton);
+        parentElement.appendChild(importOptionsDiv);
+    }
+
 
     const csvFileInput = document.createElement('input');
     csvFileInput.type = 'file';
@@ -1887,8 +2567,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     csvFileInput.accept = '.csv';
     csvFileInput.style.display = 'none';
     csvFileInput.onchange = handleImportIntegrantesCSVFile;
-    csvActionsContainer.appendChild(csvFileInput);
-    parentElement.appendChild(csvActionsContainer);
+    parentElement.appendChild(csvFileInput);
 
 
     const searchContainer = document.createElement('div');
@@ -1926,7 +2605,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     addButton.onclick = () => {
         const trimmedText = newIntegranteInputText.trim().toUpperCase();
         if (trimmedText) {
-            if (integrantes.some(i => i.nombre.toUpperCase() === trimmedText)) {
+            if (integrantes.some(i => normalizeStringForComparison(i.nombre) === normalizeStringForComparison(trimmedText))) {
                 alert('Este integrante ya existe.');
                 return;
             }
@@ -1981,7 +2660,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     const listContainer = document.createElement('ul');
     listContainer.className = 'razones-list';
     let filteredIntegrantes = integrantes.filter(integrante =>
-        integrante.nombre.toLowerCase().includes(integrantesSearchTerm.toLowerCase())
+        normalizeStringForComparison(integrante.nombre).includes(normalizeStringForComparison(integrantesSearchTerm))
     );
 
     const sortedIntegrantes = [...filteredIntegrantes];
@@ -2007,7 +2686,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
             const editInput = document.createElement('input');
             editInput.setAttribute('type', 'text');
             editInput.className = 'razon-input';
-            editInput.value = editIntegranteInputText;
+            editInput.value = editIntegranteInputText; 
             editInput.oninput = (e) => editIntegranteInputText = (e.target as HTMLInputElement).value;
             const EDIT_INPUT_ID = `edit-integrante-${integrante.id}`;
             editInput.id = EDIT_INPUT_ID;
@@ -2020,8 +2699,12 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
             saveButton.onclick = () => {
                 const trimmedEditText = editIntegranteInputText.trim().toUpperCase();
                 if (trimmedEditText) {
-                    if (integrantes.some(i => i.nombre.toUpperCase() === trimmedEditText && i.id !== integrante.id)) {
+                    if (integrantes.some(i => normalizeStringForComparison(i.nombre) === normalizeStringForComparison(trimmedEditText) && i.id !== integrante.id)) {
                         alert('Ya existe otro integrante con este nombre.');
+                        return;
+                    }
+                     if ((integrante.id === 1 || integrante.id === 2) && trimmedEditText === "") {
+                        alert(`El integrante "${integrante.nombre}" es un sistema y no puede tener un nombre vacío.`);
                         return;
                     }
                     const index = integrantes.findIndex(i => i.id === integrante.id);
@@ -2032,7 +2715,11 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
                     editingIntegranteId = null;
                     renderApp();
                 } else {
-                     alert('El nombre no puede estar vacío.');
+                     if (integrante.id === 1 || integrante.id === 2) {
+                        alert(`El integrante "${integrante.nombre}" es un sistema y no puede tener un nombre vacío.`);
+                     } else {
+                        alert('El nombre no puede estar vacío.');
+                     }
                 }
             };
             const cancelButton = document.createElement('button');
@@ -2055,7 +2742,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
             editButton.setAttribute('aria-label', 'Editar Integrante');
             editButton.onclick = () => {
                 editingIntegranteId = integrante.id;
-                editIntegranteInputText = integrante.nombre;
+                editIntegranteInputText = integrante.nombre; 
                 renderApp();
             };
             const deleteButton = document.createElement('button');
@@ -2063,6 +2750,10 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
             deleteButton.className = 'icon-button delete-icon-button';
             deleteButton.setAttribute('aria-label', 'Eliminar Integrante');
             deleteButton.onclick = () => {
+                if (integrante.id === 1 || integrante.id === 2) {
+                     alert(`El integrante "${integrante.nombre}" (ID: ${integrante.id}) es un sistema y no puede ser eliminado.`);
+                     return;
+                }
                 if (financialRecords.some(fr => fr.integranteId === integrante.id)) {
                     alert(`No se puede eliminar al integrante "${integrante.nombre}" porque está referenciado en registros financieros.`);
                     return;
@@ -2082,5 +2773,6 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     parentElement.appendChild(listContainer);
 }
 
-// Initial render
+// Initial load
+loadTheme();
 renderApp();
