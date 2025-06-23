@@ -147,6 +147,7 @@ let newRecordRazonSearchText: string = '';
 let newRecordRazonSelectedDescripcion: string = '';
 
 let focusTargetId: string | null = null;
+let mainContentScrollTop: number | null = null; // For scroll preservation
 
 // --- Dashboard Chart State (now for Financial Panel) ---
 type DashboardViewType = 'annual_summary' | 'monthly_trend' | 'daily_trend';
@@ -212,6 +213,7 @@ const INTEGRANTE_CSV_FILE_INPUT_ID = 'integrante-csv-file-input';
 const RECORD_INTEGRANTE_FILTER_INPUT_ID = 'record-integrante-filter-input';
 const RECORD_RAZON_FILTER_INPUT_ID = 'record-razon-filter-input';
 const RECORD_FILTER_TEXT_INPUT_ID = 'record-filter-text-input';
+const RECORD_FILTER_FIELD_SELECT_ID = 'record-filter-field-select';
 
 
 const ICONS = {
@@ -289,9 +291,9 @@ function toggleTheme() {
 
 
 function normalizeStringForComparison(str: string): string {
-    if (!str) return '';
+    if (str === null || str === undefined) return ''; // Ensure null/undefined become empty string
     // Basic accent removal for Spanish vowels and N, and convert to uppercase
-    return str.trim().toUpperCase()
+    return String(str).trim().toUpperCase() // Ensure str is treated as string
         .replace(/Á/g, 'A')
         .replace(/É/g, 'E')
         .replace(/Í/g, 'I')
@@ -381,6 +383,18 @@ function renderApp(): void {
     appRoot.appendChild(mainContentElement);
     renderBottomNavigation(appRoot);
 
+    if (mainContentScrollTop !== null) {
+        const mainArea = document.getElementById('main-content-area');
+        if (mainArea) {
+            requestAnimationFrame(() => { // Use rAF for safety after DOM updates
+                mainArea.scrollTop = mainContentScrollTop!;
+                mainContentScrollTop = null; // Reset after applying
+            });
+        } else {
+            mainContentScrollTop = null; // Reset if area not found
+        }
+    }
+
     if (focusTargetId) {
         const elementToFocus = document.getElementById(focusTargetId);
         if (elementToFocus instanceof HTMLInputElement || elementToFocus instanceof HTMLTextAreaElement || elementToFocus instanceof HTMLSelectElement) {
@@ -450,6 +464,7 @@ function renderBottomNavigation(parentElement: HTMLElement): void {
                 newRecordRazonSelectedDescripcion = '';
                 showFinancialImportOptions = false; // Hide import options when leaving records screen
                 recordFilterText = ''; // Reset record filter text
+                // recordFilterField = 'descripcion'; // Optionally reset filter field type
             }
             currentView = item.view;
             renderApp();
@@ -1323,6 +1338,9 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     integranteFilterInput.value = newRecordIntegranteSearchText;
     integranteFilterInput.autocomplete = 'off';
     integranteFilterInput.oninput = (e) => {
+        const mainArea = document.getElementById('main-content-area');
+        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
+
         newRecordIntegranteSearchText = (e.target as HTMLInputElement).value;
         focusTargetId = RECORD_INTEGRANTE_FILTER_INPUT_ID;
         renderApp();
@@ -1352,7 +1370,7 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
             listItem.onclick = () => {
                 newRecordIntegranteId = integrante.id;
                 newRecordIntegranteSelectedName = integrante.nombre;
-                focusTargetId = RECORD_INTEGRANTE_FILTER_INPUT_ID;
+                focusTargetId = RECORD_INTEGRANTE_FILTER_INPUT_ID; // Keep focus for potential clearing
                 renderApp();
             };
             integranteUl.appendChild(listItem);
@@ -1412,6 +1430,9 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     razonFilterInput.value = newRecordRazonSearchText;
     razonFilterInput.autocomplete = 'off';
     razonFilterInput.oninput = (e) => {
+        const mainArea = document.getElementById('main-content-area');
+        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
+
         newRecordRazonSearchText = (e.target as HTMLInputElement).value;
         focusTargetId = RECORD_RAZON_FILTER_INPUT_ID;
         renderApp();
@@ -1441,7 +1462,7 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
             listItem.onclick = () => {
                 newRecordRazonId = razon.id;
                 newRecordRazonSelectedDescripcion = razon.descripcion;
-                focusTargetId = RECORD_RAZON_FILTER_INPUT_ID;
+                focusTargetId = RECORD_RAZON_FILTER_INPUT_ID; // Keep focus for potential clearing
                 renderApp();
             };
             razonUl.appendChild(listItem);
@@ -1499,28 +1520,43 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     const filterFieldGroup = document.createElement('div');
     filterFieldGroup.className = 'form-group';
     const filterFieldLabel = document.createElement('label');
-    filterFieldLabel.setAttribute('for', 'record-filter-field');
+    filterFieldLabel.setAttribute('for', RECORD_FILTER_FIELD_SELECT_ID);
     filterFieldLabel.textContent = 'Filtrar por:';
     const filterFieldSelect = document.createElement('select');
-    filterFieldSelect.id = 'record-filter-field';
+    filterFieldSelect.id = RECORD_FILTER_FIELD_SELECT_ID;
     filterFieldSelect.className = 'form-input';
-    filterFieldSelect.value = recordFilterField;
+    // The value will be set after options are populated, or by setting .selected on options
     filterFieldSelect.onchange = (e) => {
+        const mainArea = document.getElementById('main-content-area');
+        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
+
         recordFilterField = (e.target as HTMLSelectElement).value as RecordFilterField;
+        focusTargetId = RECORD_FILTER_FIELD_SELECT_ID; // Keep focus on select after change
         renderApp();
     };
-    ([
+
+    const filterOptions: {value: RecordFilterField, text: string}[] = [
         { value: 'descripcion', text: 'Descripción' },
         { value: 'fecha', text: 'Fecha' },
         { value: 'integrante', text: 'Integrante' },
         { value: 'movimiento', text: 'Movimiento' },
         { value: 'razon', text: 'Razón' },
-    ] as {value: RecordFilterField, text: string}[]).forEach(opt => {
+    ];
+
+    filterOptions.forEach(opt => {
         const option = document.createElement('option');
         option.value = opt.value;
         option.textContent = opt.text;
+        if (recordFilterField === opt.value) {
+            option.selected = true; // Ensure correct option is visually selected
+        }
         filterFieldSelect.appendChild(option);
     });
+    // It's also good practice to set the select's value directly after populating options,
+    // though `option.selected = true` should handle it.
+    filterFieldSelect.value = recordFilterField;
+
+
     filterFieldGroup.appendChild(filterFieldLabel);
     filterFieldGroup.appendChild(filterFieldSelect);
     recordsFilterContainer.appendChild(filterFieldGroup);
@@ -1536,7 +1572,11 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     filterTextInput.className = 'form-input';
     filterTextInput.placeholder = 'Escriba para filtrar...';
     filterTextInput.value = recordFilterText;
+    filterTextInput.autocomplete = 'off'; // Added for better mobile UX
     filterTextInput.oninput = (e) => {
+        const mainArea = document.getElementById('main-content-area');
+        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
+
         recordFilterText = (e.target as HTMLInputElement).value;
         focusTargetId = RECORD_FILTER_TEXT_INPUT_ID;
         renderApp();
@@ -1569,7 +1609,7 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
 
     if (normalizedFilterText) {
         displayRecords = displayRecords.filter(record => {
-            let fieldValue = '';
+            let fieldValue: string | undefined = ''; // Initialize to handle cases where field might not be found or is null
             const integrante = integrantes.find(i => i.id === record.integranteId);
             const razon = razones.find(r => r.id === record.razonId);
 
@@ -1579,6 +1619,7 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
                 case 'movimiento': fieldValue = record.movimiento; break;
                 case 'razon': fieldValue = razon ? razon.descripcion : ''; break;
                 case 'descripcion': fieldValue = record.descripcion; break;
+                default: return false; // Should ideally not be reached if recordFilterField is always valid
             }
             return normalizeStringForComparison(fieldValue).includes(normalizedFilterText);
         });
@@ -2145,12 +2186,15 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
     searchInput.id = RAZON_SEARCH_INPUT_ID;
     searchInput.value = razonesSearchTerm;
     searchInput.oninput = (e) => {
+        const mainArea = document.getElementById('main-content-area');
+        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
+
         const inputElement = e.target as HTMLInputElement;
         razonesSearchTerm = inputElement.value;
-        renderApp();
         focusTargetId = RAZON_SEARCH_INPUT_ID;
+        renderApp();
     };
-    searchInput.onfocus = () => {
+    searchInput.onfocus = () => { // Keep this in case user just clicks in
         focusTargetId = RAZON_SEARCH_INPUT_ID;
     };
     searchContainer.appendChild(searchInput);
@@ -2179,6 +2223,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
             saveRazonesToLocalStorage();
             newReasonInputText = '';
             editingReasonId = null;
+            razonesSearchTerm = ''; // Optionally clear search after adding
             renderApp();
         } else {
             alert('La descripción no puede estar vacía.');
@@ -2257,7 +2302,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
             editInput.oninput = (e) => editReasonInputText = (e.target as HTMLInputElement).value;
             const EDIT_INPUT_ID = `edit-razon-${razon.id}`;
             editInput.id = EDIT_INPUT_ID;
-            focusTargetId = EDIT_INPUT_ID;
+            
 
             const saveButton = document.createElement('button');
             saveButton.textContent = 'Guardar';
@@ -2275,6 +2320,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
                         saveRazonesToLocalStorage();
                     }
                     editingReasonId = null;
+                    focusTargetId = null; // Clear focus target after successful save
                     renderApp();
                 } else {
                      alert('La descripción no puede estar vacía.');
@@ -2285,9 +2331,12 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
             cancelButton.className = 'nav-button action-button-inline danger-button';
             cancelButton.onclick = () => {
                 editingReasonId = null;
+                focusTargetId = null; // Clear focus target
                 renderApp();
             };
             listItem.appendChild(editInput); listItem.appendChild(saveButton); listItem.appendChild(cancelButton);
+            // Set focus *after* element is in DOM (handled by global focusTargetId mechanism in renderApp)
+            focusTargetId = EDIT_INPUT_ID; 
         } else {
             const textSpan = document.createElement('span');
             textSpan.className = 'razon-text';
@@ -2301,7 +2350,8 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
             editButton.onclick = () => {
                 editingReasonId = razon.id;
                 editReasonInputText = razon.descripcion; 
-                renderApp();
+                // Focus will be set to the edit input in the next render cycle by focusTargetId mechanism
+                renderApp(); 
             };
             const deleteButton = document.createElement('button');
             deleteButton.innerHTML = ICONS.delete;
@@ -2575,33 +2625,36 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     const searchInput = document.createElement('input');
     searchInput.setAttribute('type', 'text');
     searchInput.setAttribute('placeholder', 'Buscar integrante...');
-    searchInput.className = 'razon-input search-razon-input';
+    searchInput.className = 'razon-input search-razon-input'; // Re-use razon-input class for styling consistency
     searchInput.id = INTEGRANTE_SEARCH_INPUT_ID;
     searchInput.value = integrantesSearchTerm;
     searchInput.oninput = (e) => {
+        const mainArea = document.getElementById('main-content-area');
+        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
+
         const inputElement = e.target as HTMLInputElement;
         integrantesSearchTerm = inputElement.value;
+        focusTargetId = INTEGRANTE_SEARCH_INPUT_ID; // Set focus target before re-render
         renderApp();
-        focusTargetId = INTEGRANTE_SEARCH_INPUT_ID;
     };
-    searchInput.onfocus = () => {
+    searchInput.onfocus = () => { // Keep this for focus persistence on click
         focusTargetId = INTEGRANTE_SEARCH_INPUT_ID;
     };
     searchContainer.appendChild(searchInput);
     parentElement.appendChild(searchContainer);
 
     const addForm = document.createElement('div');
-    addForm.className = 'razon-form add-form';
+    addForm.className = 'razon-form add-form'; // Re-use razon-form for styling
     const newInput = document.createElement('input');
     newInput.setAttribute('type', 'text');
     newInput.setAttribute('placeholder', 'Nombre del nuevo integrante');
-    newInput.className = 'razon-input';
+    newInput.className = 'razon-input'; // Re-use razon-input
     newInput.value = newIntegranteInputText;
     newInput.oninput = (e) => newIntegranteInputText = (e.target as HTMLInputElement).value;
 
     const addButton = document.createElement('button');
     addButton.textContent = 'Agregar Integrante';
-    addButton.className = 'nav-button primary-button';
+    addButton.className = 'nav-button primary-button'; // Re-use button style
     addButton.onclick = () => {
         const trimmedText = newIntegranteInputText.trim().toUpperCase();
         if (trimmedText) {
@@ -2613,6 +2666,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
             saveIntegrantesToLocalStorage();
             newIntegranteInputText = '';
             editingIntegranteId = null;
+            integrantesSearchTerm = ''; // Optionally clear search
             renderApp();
         } else {
             alert('El nombre no puede estar vacío.');
@@ -2658,7 +2712,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
 
 
     const listContainer = document.createElement('ul');
-    listContainer.className = 'razones-list';
+    listContainer.className = 'razones-list'; // Re-use list style
     let filteredIntegrantes = integrantes.filter(integrante =>
         normalizeStringForComparison(integrante.nombre).includes(normalizeStringForComparison(integrantesSearchTerm))
     );
@@ -2681,7 +2735,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
 
     sortedIntegrantes.forEach(integrante => {
         const listItem = document.createElement('li');
-        listItem.className = 'razon-item';
+        listItem.className = 'razon-item'; // Re-use item style
         if (editingIntegranteId === integrante.id) {
             const editInput = document.createElement('input');
             editInput.setAttribute('type', 'text');
@@ -2690,8 +2744,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
             editInput.oninput = (e) => editIntegranteInputText = (e.target as HTMLInputElement).value;
             const EDIT_INPUT_ID = `edit-integrante-${integrante.id}`;
             editInput.id = EDIT_INPUT_ID;
-            focusTargetId = EDIT_INPUT_ID;
-
+            
 
             const saveButton = document.createElement('button');
             saveButton.textContent = 'Guardar';
@@ -2713,6 +2766,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
                         saveIntegrantesToLocalStorage();
                     }
                     editingIntegranteId = null;
+                    focusTargetId = null; // Clear focus target after save
                     renderApp();
                 } else {
                      if (integrante.id === 1 || integrante.id === 2) {
@@ -2727,9 +2781,11 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
             cancelButton.className = 'nav-button action-button-inline danger-button';
             cancelButton.onclick = () => {
                 editingIntegranteId = null;
+                focusTargetId = null; // Clear focus target
                 renderApp();
             };
             listItem.appendChild(editInput); listItem.appendChild(saveButton); listItem.appendChild(cancelButton);
+            focusTargetId = EDIT_INPUT_ID; // Set focus for the next render
         } else {
             const textSpan = document.createElement('span');
             textSpan.className = 'razon-text';
@@ -2743,7 +2799,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
             editButton.onclick = () => {
                 editingIntegranteId = integrante.id;
                 editIntegranteInputText = integrante.nombre; 
-                renderApp();
+                renderApp(); // Focus will be handled by focusTargetId mechanism in next render
             };
             const deleteButton = document.createElement('button');
             deleteButton.innerHTML = ICONS.delete;
