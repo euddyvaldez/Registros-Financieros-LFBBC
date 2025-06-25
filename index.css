@@ -730,6 +730,25 @@ body.dark-theme .razon-input, body.dark-theme .form-input {
     border-color: #4A5568;
 }
 
+.form-input-display { /* For displaying data like an input, but not editable */
+    padding: 12px 15px;
+    border: 1px solid #E9ECEF; /* Lighter border, less prominent than active input */
+    border-radius: 8px;
+    font-size: 15px;
+    width: 100%;
+    background-color: #F8F9FA; /* Slightly off-white/grey background */
+    color: #495057; /* Medium-dark text */
+    min-height: 45px; /* Match input height */
+    display: flex;
+    align-items: center;
+}
+body.dark-theme .form-input-display {
+    background-color: #1C2B3A; 
+    color: #A0BBD2; 
+    border-color: #2D3748;
+}
+
+
 .razon-input::placeholder, .form-input::placeholder {
     color: #6C757D; /* Light Mode: Medium grey for placeholder */
     transition: color 0.3s ease;
@@ -840,6 +859,7 @@ body.dark-theme .razon-text {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0; /* Prevent actions from shrinking too much */
 }
 
 .icon-button {
@@ -890,12 +910,72 @@ body.dark-theme .delete-icon-button:hover {
 
 
 .action-button-inline {
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: 8px 10px; /* Adjusted padding for potentially longer text */
+    font-size: 12px; /* Slightly smaller font for these specific buttons */
     width: auto;
-    margin-left: 8px;
     min-height: auto;
     border-radius: 6px;
+    white-space: nowrap; /* Prevent text wrapping if possible */
+}
+
+/* Styles for the quick toggle icon button */
+.quick-toggle-icon-button {
+    /* Base styling inherited from .icon-button */
+}
+
+/* Default (inactive) state for the SVG within .quick-toggle-icon-button */
+/* ICONS.quick has fill="none" and stroke="currentColor", so stroke color is handled by .icon-button */
+
+/* Active state for the quick toggle icon */
+.quick-toggle-icon-button.active svg {
+    fill: #007BFF; /* Light theme: Primary Blue */
+    stroke: #007BFF;
+}
+body.dark-theme .quick-toggle-icon-button.active svg {
+    fill: #F7B500; /* Dark theme: Gold Accent */
+    stroke: #F7B500;
+}
+
+/* Hover on active state for the quick toggle icon */
+.quick-toggle-icon-button.active:hover svg {
+    fill: #0056b3; /* Light theme: Darker Blue */
+    stroke: #0056b3;
+}
+body.dark-theme .quick-toggle-icon-button.active:hover svg {
+    fill: #DFA400; /* Dark theme: Darker Gold */
+    stroke: #DFA400;
+}
+
+
+/* Kept for potential other uses, but not for the quick toggle button anymore */
+.info-button {
+    background-color: #17A2B8; /* Teal/Info Blue */
+    color: white;
+}
+.info-button:hover {
+    background-color: #138496; /* Darker Teal */
+}
+body.dark-theme .info-button {
+    background-color: #4FD1C5; /* Lighter Teal for Dark Mode */
+    color: #0D1B2A;
+}
+body.dark-theme .info-button:hover {
+    background-color: #38B2AC;
+}
+
+.warning-button {
+    background-color: #FFC107; /* Amber/Yellow */
+    color: #212529; /* Dark text for contrast */
+}
+.warning-button:hover {
+    background-color: #E0A800; /* Darker Amber */
+}
+body.dark-theme .warning-button {
+    background-color: #F6E05E; /* Lighter Yellow for Dark Mode */
+    color: #1A202C;
+}
+body.dark-theme .warning-button:hover {
+    background-color: #ECC94B;
 }
 
 .razon-item .razon-input {
@@ -1281,4 +1361,10 @@ body.dark-theme .sort-label {
 
 .sort-select {
     flex-grow: 1;
+}
+
+/* Quick Record Form Specific Styles */
+.quick-record-form {
+    /* If any specific styles are needed for the quick record form, they can go here */
+    /* For now, it reuses .record-form which is quite generic */
 }

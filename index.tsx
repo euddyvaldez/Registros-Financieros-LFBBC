@@ -1,60 +1,70 @@
 
 import { GoogleGenAI } from "@google/genai"; // Added for potential future use, not used in this iteration.
 
-const initialRazonesData: { id: number; descripcion: string }[] = [
-    { id: 1,  descripcion: "SEMANAL" },
-    { id: 2,  descripcion: "MENSUALIDAD" },
-    { id: 3,  descripcion: "APORTE EXTRA" },
-    { id: 4,  descripcion: "NEVERITA" },
-    { id: 5,  descripcion: "BOTELLON" },
-    { id: 6,  descripcion: "AGUA" },
-    { id: 7,  descripcion: "HIELO" },
-    { id: 8,  descripcion: "MALLA" },
-    { id: 9,  descripcion: "BOLA BASKET" },
-    { id: 10, descripcion: "PITO (SILBATO)" },
-    { id: 11, descripcion: "JARRON DE AGUA" },
-    { id: 12, descripcion: "PITILLO" },
-    { id: 13, descripcion: "VASO PLASTICOS" },
-    { id: 14, descripcion: "MEDIDOR DE PRESION" },
-    { id: 15, descripcion: "ARBITRO (PITO)" },
-    { id: 16, descripcion: "TERMOS PERSONALIZADOS" },
-    { id: 17, descripcion: "MEDALLAS" },
-    { id: 18, descripcion: "TORNEO NAVIDEÑO 2023" },
-    { id: 19, descripcion: "COMBUSTIBLE" },
-    { id: 20, descripcion: "TERMO DE AGUA GRANDE" },
-    { id: 21, descripcion: "SUAPE Y ESCOBA" },
-    { id: 22, descripcion: "1ER UNIFORME REVERSIBLE SUBLIMADO" },
-    { id: 23, descripcion: "MARCADORES (PARA LA PIZARRA)" },
-    { id: 24, descripcion: "APP ESTADISTICAS (mensualidad)" },
-    { id: 25, descripcion: "FORMULARIO ESTADISTICAS" },
-    { id: 26, descripcion: "BOLETAS VOTACION CAPITANES" },
-    { id: 27, descripcion: "DONACIONES" },
-    { id: 28, descripcion: "ALQUILAR CANCHA" },
-    { id: 29, descripcion: "TORNEO ANIVERSARIO 2024" },
-    { id: 30, descripcion: "REFRIGERIO" },
-    { id: 31, descripcion: "CRONOMETRO" },
-    { id: 32, descripcion: "CORCHA (ESPONJA)" },
-    { id: 33, descripcion: "FOGUEO" },
-    { id: 34, descripcion: "FARDOS DE AGUA" },
-    { id: 35, descripcion: "CERVEZAS ONE" },
-    { id: 36, descripcion: "TRANSPORTE" },
-    { id: 37, descripcion: "ACTIVIDAD FIN DE AÑO 2024" },
-    { id: 38, descripcion: "INYECCION DE CAPITAL" },
-    { id: 39, descripcion: "REPOSICION DE CAPITAL" },
-    { id: 40, descripcion: "TORNEO ANIVERSARIO 2025" }
+interface Razon {
+    id: number;
+    descripcion: string;
+    isQuickReason: boolean;
+}
+
+const initialRazonesData: Razon[] = [
+    { id: 1,  descripcion: "SEMANAL", isQuickReason: false },
+    { id: 2,  descripcion: "MENSUALIDAD", isQuickReason: false },
+    { id: 3,  descripcion: "APORTE EXTRA", isQuickReason: false },
+    { id: 4,  descripcion: "NEVERITA", isQuickReason: false },
+    { id: 5,  descripcion: "BOTELLON", isQuickReason: false },
+    { id: 6,  descripcion: "AGUA", isQuickReason: false },
+    { id: 7,  descripcion: "HIELO", isQuickReason: false },
+    { id: 8,  descripcion: "MALLA", isQuickReason: false },
+    { id: 9,  descripcion: "BOLA BASKET", isQuickReason: false },
+    { id: 10, descripcion: "PITO (SILBATO)", isQuickReason: false },
+    { id: 11, descripcion: "JARRON DE AGUA", isQuickReason: false },
+    { id: 12, descripcion: "PITILLO", isQuickReason: false },
+    { id: 13, descripcion: "VASO PLASTICOS", isQuickReason: false },
+    { id: 14, descripcion: "MEDIDOR DE PRESION", isQuickReason: false },
+    { id: 15, descripcion: "ARBITRO (PITO)", isQuickReason: false },
+    { id: 16, descripcion: "TERMOS PERSONALIZADOS", isQuickReason: false },
+    { id: 17, descripcion: "MEDALLAS", isQuickReason: false },
+    { id: 18, descripcion: "TORNEO NAVIDEÑO 2023", isQuickReason: false },
+    { id: 19, descripcion: "COMBUSTIBLE", isQuickReason: false },
+    { id: 20, descripcion: "TERMO DE AGUA GRANDE", isQuickReason: false },
+    { id: 21, descripcion: "SUAPE Y ESCOBA", isQuickReason: false },
+    { id: 22, descripcion: "1ER UNIFORME REVERSIBLE SUBLIMADO", isQuickReason: false },
+    { id: 23, descripcion: "MARCADORES (PARA LA PIZARRA)", isQuickReason: false },
+    { id: 24, descripcion: "APP ESTADISTICAS (mensualidad)", isQuickReason: false },
+    { id: 25, descripcion: "FORMULARIO ESTADISTICAS", isQuickReason: false },
+    { id: 26, descripcion: "BOLETAS VOTACION CAPITANES", isQuickReason: false },
+    { id: 27, descripcion: "DONACIONES", isQuickReason: false },
+    { id: 28, descripcion: "ALQUILAR CANCHA", isQuickReason: false },
+    { id: 29, descripcion: "TORNEO ANIVERSARIO 2024", isQuickReason: false },
+    { id: 30, descripcion: "REFRIGERIO", isQuickReason: false },
+    { id: 31, descripcion: "CRONOMETRO", isQuickReason: false },
+    { id: 32, descripcion: "CORCHA (ESPONJA)", isQuickReason: false },
+    { id: 33, descripcion: "FOGUEO", isQuickReason: false },
+    { id: 34, descripcion: "FARDOS DE AGUA", isQuickReason: false },
+    { id: 35, descripcion: "CERVEZAS ONE", isQuickReason: false },
+    { id: 36, descripcion: "TRANSPORTE", isQuickReason: false },
+    { id: 37, descripcion: "ACTIVIDAD FIN DE AÑO 2024", isQuickReason: false },
+    { id: 38, descripcion: "INYECCION DE CAPITAL", isQuickReason: false },
+    { id: 39, descripcion: "REPOSICION DE CAPITAL", isQuickReason: false },
+    { id: 40, descripcion: "TORNEO ANIVERSARIO 2025", isQuickReason: false }
 ];
 
-let razones: { id: number; descripcion: string }[] = [];
+let razones: Razon[] = [];
 try {
     const storedRazones = localStorage.getItem('razonesData');
     if (storedRazones) {
-        razones = JSON.parse(storedRazones);
+        razones = JSON.parse(storedRazones).map((r: any) => ({
+            id: r.id,
+            descripcion: String(r.descripcion || '').toUpperCase(),
+            isQuickReason: typeof r.isQuickReason === 'boolean' ? r.isQuickReason : false
+        }));
     } else {
-        razones = initialRazonesData.map(r => ({ id: r.id, descripcion: r.descripcion.toUpperCase() }));
+        razones = initialRazonesData.map(r => ({ ...r, descripcion: r.descripcion.toUpperCase() }));
     }
 } catch (e) {
     console.error("Error loading razones from localStorage", e);
-    razones = initialRazonesData.map(r => ({ id: r.id, descripcion: r.descripcion.toUpperCase() }));
+    razones = initialRazonesData.map(r => ({ ...r, descripcion: r.descripcion.toUpperCase() }));
 }
 
 let nextReasonId = razones.length > 0 ? Math.max(0, ...razones.map(r => r.id)) + 1 : 1;
@@ -146,6 +156,52 @@ let newRecordIntegranteSelectedName: string = '';
 let newRecordRazonSearchText: string = '';
 let newRecordRazonSelectedDescripcion: string = '';
 
+// --- Quick Record State ---
+let quickRazonesAvailable: Razon[] = [];
+
+function updateQuickRazonesAvailable() {
+    quickRazonesAvailable = razones.filter(r => r.isQuickReason)
+        .sort((a, b) => {
+            const descA = normalizeStringForComparison(a.descripcion);
+            const descB = normalizeStringForComparison(b.descripcion);
+            if (descA === "MENSUALIDAD") return -1;
+            if (descB === "MENSUALIDAD") return 1;
+            if (descA === "SEMANAL") return -1;
+            if (descB === "SEMANAL") return 1;
+            return a.descripcion.localeCompare(b.descripcion);
+        });
+}
+// Initial population
+updateQuickRazonesAvailable();
+
+
+let quickRecordFecha: string = new Date().toISOString().split('T')[0];
+let quickRecordRazonId: number | null = null; // Will be set by setDefaultQuickRecordRazonId
+let quickRecordMonto: string = '100';
+let quickRecordIntegranteId: number | null = null;
+let quickRecordMovimiento: 'INGRESOS' | 'GASTOS' | 'INVERSION' = 'INGRESOS';
+let quickRecordIntegranteSearchText: string = '';
+let quickRecordIntegranteSelectedName: string = '';
+let quickRecordFocusTargetId: string | null = null;
+let quickRecordMainContentScrollTop: number | null = null;
+
+function setDefaultQuickRecordRazonId() {
+    const mensualidadQuick = quickRazonesAvailable.find(r => normalizeStringForComparison(r.descripcion) === "MENSUALIDAD");
+    const semanalQuick = quickRazonesAvailable.find(r => normalizeStringForComparison(r.descripcion) === "SEMANAL");
+
+    if (mensualidadQuick) {
+        quickRecordRazonId = mensualidadQuick.id;
+    } else if (semanalQuick) {
+        quickRecordRazonId = semanalQuick.id;
+    } else if (quickRazonesAvailable.length > 0) {
+        quickRecordRazonId = quickRazonesAvailable[0].id;
+    } else {
+        quickRecordRazonId = null;
+    }
+}
+setDefaultQuickRecordRazonId();
+
+
 let focusTargetId: string | null = null;
 let mainContentScrollTop: number | null = null; // For scroll preservation
 
@@ -175,7 +231,7 @@ const financialQuotes = [
 
 // --- End Financial Records State ---
 
-let currentView = 'dashboard'; // 'dashboard', 'financial_panel', 'records', 'razones', or 'integrantes'
+let currentView = 'dashboard'; // 'dashboard', 'quick_record', 'financial_panel', 'records', 'razones', or 'integrantes'
 
 // --- Financial Import State ---
 let showFinancialImportOptions: boolean = false;
@@ -212,8 +268,17 @@ const INTEGRANTE_CSV_FILE_INPUT_ID = 'integrante-csv-file-input';
 
 const RECORD_INTEGRANTE_FILTER_INPUT_ID = 'record-integrante-filter-input';
 const RECORD_RAZON_FILTER_INPUT_ID = 'record-razon-filter-input';
+const QUICK_RECORD_INTEGRANTE_FILTER_INPUT_ID = 'quick-record-integrante-filter-input';
+
 const RECORD_FILTER_TEXT_INPUT_ID = 'record-filter-text-input';
 const RECORD_FILTER_FIELD_SELECT_ID = 'record-filter-field-select';
+
+// IDs for dynamic list UL elements
+const RECORD_INTEGRANTE_SELECT_LIST_ID = 'record-integrante-select-list';
+const RECORD_RAZON_SELECT_LIST_ID = 'record-razon-select-list';
+const QUICK_RECORD_INTEGRANTE_SELECT_LIST_ID = 'quick-record-integrante-select-list';
+const RAZONES_LIST_CONTAINER_ID = 'razones-list-container-ul';
+const INTEGRANTES_LIST_CONTAINER_ID = 'integrantes-list-container-ul';
 
 
 const ICONS = {
@@ -232,6 +297,11 @@ const ICONS = {
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+    `,
+    quick: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
         </svg>
     `,
     people: `
@@ -316,6 +386,8 @@ function saveRazonesToLocalStorage() {
     try {
         localStorage.setItem('razonesData', JSON.stringify(razones));
         nextReasonId = razones.length > 0 ? Math.max(0, ...razones.map(r => r.id)) + 1 : 1;
+        updateQuickRazonesAvailable();
+        setDefaultQuickRecordRazonId();
     } catch (e) {
         console.error("Error saving razones to localStorage", e);
         alert("Error: No se pudieron guardar las razones. El almacenamiento local puede estar lleno o deshabilitado.");
@@ -339,6 +411,9 @@ function renderApp(): void {
         return;
     }
     appRoot.innerHTML = '';
+    updateQuickRazonesAvailable();
+    setDefaultQuickRecordRazonId();
+
 
     const appHeaderDiv = document.createElement('div');
     appHeaderDiv.className = 'app-global-header';
@@ -370,6 +445,8 @@ function renderApp(): void {
 
     if (currentView === 'dashboard') {
         renderDashboardScreen(mainContentElement);
+    } else if (currentView === 'quick_record') {
+        renderQuickRecordScreen(mainContentElement);
     } else if (currentView === 'financial_panel') {
         renderFinancialPanelScreen(mainContentElement);
     } else if (currentView === 'records') {
@@ -383,31 +460,63 @@ function renderApp(): void {
     appRoot.appendChild(mainContentElement);
     renderBottomNavigation(appRoot);
 
-    if (mainContentScrollTop !== null) {
-        const mainArea = document.getElementById('main-content-area');
-        if (mainArea) {
-            requestAnimationFrame(() => { // Use rAF for safety after DOM updates
-                mainArea.scrollTop = mainContentScrollTop!;
-                mainContentScrollTop = null; // Reset after applying
-            });
-        } else {
-            mainContentScrollTop = null; // Reset if area not found
-        }
+    const currentMainContentArea = document.getElementById('main-content-area');
+    let scrollPositionToRestore = mainContentScrollTop;
+    let focusTargetToRestore = focusTargetId;
+
+    if (currentView === 'quick_record') {
+        scrollPositionToRestore = quickRecordMainContentScrollTop;
+        focusTargetToRestore = quickRecordFocusTargetId;
     }
 
-    if (focusTargetId) {
-        const elementToFocus = document.getElementById(focusTargetId);
+    if (scrollPositionToRestore !== null && currentMainContentArea) {
+        requestAnimationFrame(() => {
+            currentMainContentArea.scrollTop = scrollPositionToRestore!;
+            if (currentView === 'quick_record') {
+                quickRecordMainContentScrollTop = null;
+            } else {
+                mainContentScrollTop = null;
+            }
+        });
+    } else {
+         if (currentView === 'quick_record') {
+            quickRecordMainContentScrollTop = null;
+         } else {
+            mainContentScrollTop = null;
+         }
+    }
+
+    if (focusTargetToRestore) {
+        const elementToFocus = document.getElementById(focusTargetToRestore);
         if (elementToFocus instanceof HTMLInputElement || elementToFocus instanceof HTMLTextAreaElement || elementToFocus instanceof HTMLSelectElement) {
-            requestAnimationFrame(() => {
+            requestAnimationFrame(() => { // RAF 1 (for focus)
                 elementToFocus.focus();
                 if (elementToFocus instanceof HTMLInputElement && typeof elementToFocus.value === 'string') {
-                    try {
-                        elementToFocus.setSelectionRange(elementToFocus.value.length, elementToFocus.value.length);
-                    } catch (e) { /* ignore */ }
+                    // Use another RAF for setSelectionRange for better sync with browser rendering pipeline
+                    requestAnimationFrame(() => { // RAF 2 (for selectionRange)
+                        // Ensure element is still focused before trying to set selection
+                        if (document.activeElement === elementToFocus) {
+                            try {
+                                elementToFocus.setSelectionRange(elementToFocus.value.length, elementToFocus.value.length);
+                            } catch (e) {
+                                // Ignore errors, e.g. if input type doesn't support setSelectionRange or element lost focus unexpectedly
+                            }
+                        }
+                    });
                 }
             });
         }
-        focusTargetId = null;
+        if (currentView === 'quick_record') {
+            quickRecordFocusTargetId = null;
+        } else {
+            focusTargetId = null;
+        }
+    } else {
+        if (currentView === 'quick_record') {
+            quickRecordFocusTargetId = null;
+         } else {
+            focusTargetId = null;
+         }
     }
 }
 
@@ -417,6 +526,7 @@ function renderBottomNavigation(parentElement: HTMLElement): void {
 
     const navItems = [
         { view: 'dashboard', label: 'Inicio', icon: ICONS.home },
+        { view: 'quick_record', label: 'Rápido', icon: ICONS.quick },
         { view: 'financial_panel', label: 'Panel Fin.', icon: ICONS.chart },
         { view: 'records', label: 'Registros', icon: ICONS.list },
         { view: 'integrantes', label: 'Integrantes', icon: ICONS.people },
@@ -462,9 +572,12 @@ function renderBottomNavigation(parentElement: HTMLElement): void {
                 newRecordIntegranteSelectedName = '';
                 newRecordRazonSearchText = '';
                 newRecordRazonSelectedDescripcion = '';
-                showFinancialImportOptions = false; // Hide import options when leaving records screen
-                recordFilterText = ''; // Reset record filter text
-                // recordFilterField = 'descripcion'; // Optionally reset filter field type
+                showFinancialImportOptions = false;
+                recordFilterText = '';
+            }
+            if (currentView === 'quick_record' && item.view !== 'quick_record') {
+                quickRecordIntegranteSearchText = '';
+                quickRecordIntegranteSelectedName = '';
             }
             currentView = item.view;
             renderApp();
@@ -1025,6 +1138,238 @@ function renderDashboardScreen(parentElement: HTMLElement): void {
     }
 }
 
+function _updateQuickRecordIntegranteList(searchTerm: string) {
+    const ul = document.getElementById(QUICK_RECORD_INTEGRANTE_SELECT_LIST_ID) as HTMLUListElement;
+    if (!ul) return;
+    ul.innerHTML = '';
+
+    const normalizedSearchTerm = normalizeStringForComparison(searchTerm);
+    const filtered = searchTerm.trim() === ''
+        ? [...integrantes].sort((a,b) => a.nombre.localeCompare(b.nombre))
+        : integrantes.filter(inte => normalizeStringForComparison(inte.nombre).includes(normalizedSearchTerm))
+                     .sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+    if (filtered.length === 0 && searchTerm.trim() !== '') {
+        const noResultItem = document.createElement('li');
+        noResultItem.textContent = 'Ningún integrante coincide';
+        noResultItem.className = 'selectable-list-item disabled';
+        ul.appendChild(noResultItem);
+    } else {
+        filtered.forEach(integrante => {
+            const listItem = document.createElement('li');
+            listItem.className = 'selectable-list-item';
+            listItem.textContent = integrante.nombre;
+            listItem.onclick = () => {
+                quickRecordIntegranteId = integrante.id;
+                quickRecordIntegranteSelectedName = integrante.nombre;
+                
+                const mainArea = document.getElementById('main-content-area');
+                if (mainArea) quickRecordMainContentScrollTop = mainArea.scrollTop;
+                quickRecordFocusTargetId = QUICK_RECORD_INTEGRANTE_FILTER_INPUT_ID;
+                renderApp();
+            };
+            ul.appendChild(listItem);
+        });
+    }
+}
+
+function renderQuickRecordScreen(parentElement: HTMLElement): void {
+    const header = document.createElement('h1');
+    header.className = 'header-title';
+    header.innerHTML = 'Registro Rápido';
+    parentElement.appendChild(header);
+
+    const form = document.createElement('form');
+    form.className = 'record-form quick-record-form'; // Add specific class for potential styling
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        handleAddQuickRecord();
+    };
+
+    // Fecha (Display only for now)
+    const fechaGroup = document.createElement('div');
+    fechaGroup.className = 'form-group';
+    const fechaLabel = document.createElement('label');
+    fechaLabel.textContent = 'Fecha:';
+    const fechaDisplay = document.createElement('p');
+    fechaDisplay.className = 'form-input-display'; // For styling like an input but not editable
+    fechaDisplay.textContent = new Date(quickRecordFecha).toLocaleDateString('es-DO', { year: 'numeric', month: 'long', day: 'numeric' });
+    fechaGroup.appendChild(fechaLabel);
+    fechaGroup.appendChild(fechaDisplay);
+    form.appendChild(fechaGroup);
+
+    // Razón Select
+    const razonGroup = document.createElement('div');
+    razonGroup.className = 'form-group';
+    const razonLabel = document.createElement('label');
+    razonLabel.setAttribute('for', 'quick-record-razon');
+    razonLabel.textContent = 'Razón:';
+    const razonSelect = document.createElement('select');
+    razonSelect.id = 'quick-record-razon';
+    razonSelect.className = 'form-input';
+
+    if (quickRazonesAvailable.length === 0) {
+        const option = document.createElement('option');
+        option.textContent = 'Habilite razones en "Gestión de Razones"';
+        option.disabled = true;
+        razonSelect.appendChild(option);
+        razonSelect.disabled = true;
+    } else {
+        quickRazonesAvailable.forEach(raz => {
+            const option = document.createElement('option');
+            option.value = String(raz.id);
+            option.textContent = raz.descripcion;
+            if (quickRecordRazonId === raz.id) option.selected = true;
+            razonSelect.appendChild(option);
+        });
+    }
+    razonSelect.onchange = (e) => quickRecordRazonId = parseInt((e.target as HTMLSelectElement).value);
+    razonGroup.appendChild(razonLabel);
+    razonGroup.appendChild(razonSelect);
+    form.appendChild(razonGroup);
+
+    // Monto Input
+    const montoGroup = document.createElement('div');
+    montoGroup.className = 'form-group';
+    const montoLabel = document.createElement('label');
+    montoLabel.setAttribute('for', 'quick-record-monto');
+    montoLabel.textContent = 'Monto (RD$):';
+    const montoInput = document.createElement('input');
+    montoInput.type = 'number';
+    montoInput.id = 'quick-record-monto';
+    montoInput.className = 'form-input';
+    montoInput.step = '0.01';
+    montoInput.placeholder = '100.00';
+    montoInput.value = quickRecordMonto;
+    montoInput.oninput = (e) => quickRecordMonto = (e.target as HTMLInputElement).value;
+    montoGroup.appendChild(montoLabel);
+    montoGroup.appendChild(montoInput);
+    form.appendChild(montoGroup);
+
+    // Integrante Selection (reusing logic from renderRecordsScreen)
+    const integranteSelectedDisplayGroup = document.createElement('div');
+    integranteSelectedDisplayGroup.className = 'form-group';
+    const integranteSelectedLabel = document.createElement('label');
+    integranteSelectedLabel.setAttribute('for', 'quick-record-integrante-selected-display');
+    integranteSelectedLabel.textContent = 'Integrante Seleccionado:';
+    const integranteSelectedDisplayInput = document.createElement('input');
+    integranteSelectedDisplayInput.type = 'text';
+    integranteSelectedDisplayInput.id = 'quick-record-integrante-selected-display';
+    integranteSelectedDisplayInput.className = 'form-input selected-item-display';
+    integranteSelectedDisplayInput.readOnly = true;
+    integranteSelectedDisplayInput.value = quickRecordIntegranteSelectedName || 'Ninguno';
+    integranteSelectedDisplayGroup.appendChild(integranteSelectedLabel);
+    integranteSelectedDisplayGroup.appendChild(integranteSelectedDisplayInput);
+    form.appendChild(integranteSelectedDisplayGroup);
+
+    const integranteFilterGroup = document.createElement('div');
+    integranteFilterGroup.className = 'form-group filter-selection-group';
+    const integranteFilterLabel = document.createElement('label');
+    integranteFilterLabel.setAttribute('for', QUICK_RECORD_INTEGRANTE_FILTER_INPUT_ID);
+    integranteFilterLabel.textContent = 'Buscar y Seleccionar Integrante:';
+    const integranteFilterInput = document.createElement('input');
+    integranteFilterInput.type = 'text';
+    integranteFilterInput.id = QUICK_RECORD_INTEGRANTE_FILTER_INPUT_ID;
+    integranteFilterInput.className = 'form-input';
+    integranteFilterInput.placeholder = 'Escriba para filtrar integrantes...';
+    integranteFilterInput.value = quickRecordIntegranteSearchText;
+    integranteFilterInput.autocomplete = 'off';
+    integranteFilterInput.oninput = (e) => {
+        quickRecordIntegranteSearchText = (e.target as HTMLInputElement).value;
+        _updateQuickRecordIntegranteList(quickRecordIntegranteSearchText);
+    };
+    integranteFilterGroup.appendChild(integranteFilterLabel);
+    integranteFilterGroup.appendChild(integranteFilterInput);
+
+    const integranteListWrapper = document.createElement('div');
+    integranteListWrapper.className = 'selectable-list-wrapper';
+    const integranteUl = document.createElement('ul');
+    integranteUl.id = QUICK_RECORD_INTEGRANTE_SELECT_LIST_ID;
+    integranteUl.className = 'selectable-list';
+    
+    // Initial population of the list (will be updated by _updateQuickRecordIntegranteList on input)
+     _updateQuickRecordIntegranteList(quickRecordIntegranteSearchText);
+
+
+    integranteListWrapper.appendChild(integranteUl);
+    integranteFilterGroup.appendChild(integranteListWrapper);
+    form.appendChild(integranteFilterGroup);
+
+
+    // Movimiento Select
+    const movimientoGroup = document.createElement('div');
+    movimientoGroup.className = 'form-group';
+    const movimientoLabel = document.createElement('label');
+    movimientoLabel.setAttribute('for', 'quick-record-movimiento');
+    movimientoLabel.textContent = 'Movimiento:';
+    const movimientoSelect = document.createElement('select');
+    movimientoSelect.id = 'quick-record-movimiento';
+    movimientoSelect.className = 'form-input';
+    movimientoSelect.value = quickRecordMovimiento;
+    movimientoSelect.onchange = (e) => quickRecordMovimiento = (e.target as HTMLSelectElement).value as 'INGRESOS' | 'GASTOS' | 'INVERSION';
+    ['INGRESOS', 'GASTOS', 'INVERSION'].forEach(mov => {
+        const option = document.createElement('option');
+        option.value = mov;
+        option.textContent = mov.charAt(0) + mov.slice(1).toLowerCase();
+        if (quickRecordMovimiento === mov) option.selected = true;
+        movimientoSelect.appendChild(option);
+    });
+    movimientoGroup.appendChild(movimientoLabel);
+    movimientoGroup.appendChild(movimientoSelect);
+    form.appendChild(movimientoGroup);
+
+    const addButton = document.createElement('button');
+    addButton.type = 'submit';
+    addButton.textContent = 'Agregar Rápido';
+    addButton.className = 'add-record-button primary-button';
+    form.appendChild(addButton);
+
+    parentElement.appendChild(form);
+}
+
+
+function handleAddQuickRecord() {
+    if (quickRecordRazonId === null || quickRazonesAvailable.length === 0) {
+        alert('Por favor, seleccione una Razón válida. Asegúrese de habilitar razones para uso rápido en la pantalla de Razones.');
+        return;
+    }
+    if (quickRecordIntegranteId === null) {
+        alert('Por favor, seleccione un Integrante.');
+        return;
+    }
+    const montoValue = parseFloat(quickRecordMonto);
+    if (isNaN(montoValue) || quickRecordMonto.trim() === '') {
+        alert('El monto debe ser un número válido.');
+        return;
+    }
+
+    const newRecord: FinancialRecord = {
+        id: nextRecordId++,
+        fecha: quickRecordFecha, // Already set to current date
+        integranteId: quickRecordIntegranteId,
+        movimiento: quickRecordMovimiento,
+        razonId: quickRecordRazonId,
+        descripcion: "", // No description field in quick record
+        monto: montoValue
+    };
+
+    financialRecords.push(newRecord);
+    saveFinancialRecords();
+
+    // Reset quick record form
+    quickRecordMonto = '100';
+    quickRecordIntegranteId = null;
+    quickRecordIntegranteSelectedName = '';
+    quickRecordIntegranteSearchText = '';
+    quickRecordMovimiento = 'INGRESOS';
+    // quickRecordFecha = new Date().toISOString().split('T')[0]; // Keep current date or update if necessary
+    setDefaultQuickRecordRazonId(); // Set default based on availability
+
+
+    alert('Registro rápido agregado con éxito!');
+    renderApp();
+}
+
 
 function renderFinancialPanelScreen(parentElement: HTMLElement): void {
     const header = document.createElement('h1');
@@ -1226,6 +1571,74 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
     }
 }
 
+function _updateRecordIntegranteList(searchTerm: string) {
+    const ul = document.getElementById(RECORD_INTEGRANTE_SELECT_LIST_ID) as HTMLUListElement;
+    if (!ul) return;
+    ul.innerHTML = '';
+
+    const normalizedSearchTerm = normalizeStringForComparison(searchTerm);
+    const filtered = searchTerm.trim() === ''
+        ? [...integrantes].sort((a,b) => a.nombre.localeCompare(b.nombre))
+        : integrantes.filter(inte => normalizeStringForComparison(inte.nombre).includes(normalizedSearchTerm))
+                     .sort((a,b) => a.nombre.localeCompare(b.nombre));
+    
+    if (filtered.length === 0 && searchTerm.trim() !== '') {
+        const noResultItem = document.createElement('li');
+        noResultItem.textContent = 'Ningún integrante coincide';
+        noResultItem.className = 'selectable-list-item disabled';
+        ul.appendChild(noResultItem);
+    } else {
+        filtered.forEach(integrante => {
+            const listItem = document.createElement('li');
+            listItem.className = 'selectable-list-item';
+            listItem.textContent = integrante.nombre;
+            listItem.onclick = () => {
+                newRecordIntegranteId = integrante.id;
+                newRecordIntegranteSelectedName = integrante.nombre;
+                const mainArea = document.getElementById('main-content-area');
+                if (mainArea) mainContentScrollTop = mainArea.scrollTop;
+                focusTargetId = RECORD_INTEGRANTE_FILTER_INPUT_ID;
+                renderApp();
+            };
+            ul.appendChild(listItem);
+        });
+    }
+}
+
+function _updateRecordRazonList(searchTerm: string) {
+    const ul = document.getElementById(RECORD_RAZON_SELECT_LIST_ID) as HTMLUListElement;
+    if (!ul) return;
+    ul.innerHTML = '';
+
+    const normalizedSearchTerm = normalizeStringForComparison(searchTerm);
+    const filtered = searchTerm.trim() === ''
+        ? [...razones].sort((a,b) => a.descripcion.localeCompare(b.descripcion))
+        : razones.filter(raz => normalizeStringForComparison(raz.descripcion).includes(normalizedSearchTerm))
+                   .sort((a,b) => a.descripcion.localeCompare(b.descripcion));
+
+    if (filtered.length === 0 && searchTerm.trim() !== '') {
+        const noResultItem = document.createElement('li');
+        noResultItem.textContent = 'Ninguna razón coincide';
+        noResultItem.className = 'selectable-list-item disabled';
+        ul.appendChild(noResultItem);
+    } else {
+        filtered.forEach(razon => {
+            const listItem = document.createElement('li');
+            listItem.className = 'selectable-list-item';
+            listItem.textContent = razon.descripcion;
+            listItem.onclick = () => {
+                newRecordRazonId = razon.id;
+                newRecordRazonSelectedDescripcion = razon.descripcion;
+                const mainArea = document.getElementById('main-content-area');
+                if (mainArea) mainContentScrollTop = mainArea.scrollTop;
+                focusTargetId = RECORD_RAZON_FILTER_INPUT_ID;
+                renderApp();
+            };
+            ul.appendChild(listItem);
+        });
+    }
+}
+
 
 function renderRecordsScreen(parentElement: HTMLElement): void {
     const header = document.createElement('h1');
@@ -1338,12 +1751,8 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     integranteFilterInput.value = newRecordIntegranteSearchText;
     integranteFilterInput.autocomplete = 'off';
     integranteFilterInput.oninput = (e) => {
-        const mainArea = document.getElementById('main-content-area');
-        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
-
         newRecordIntegranteSearchText = (e.target as HTMLInputElement).value;
-        focusTargetId = RECORD_INTEGRANTE_FILTER_INPUT_ID;
-        renderApp();
+        _updateRecordIntegranteList(newRecordIntegranteSearchText);
     };
     integranteFilterGroup.appendChild(integranteFilterLabel);
     integranteFilterGroup.appendChild(integranteFilterInput);
@@ -1351,31 +1760,10 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     const integranteListWrapper = document.createElement('div');
     integranteListWrapper.className = 'selectable-list-wrapper';
     const integranteUl = document.createElement('ul');
+    integranteUl.id = RECORD_INTEGRANTE_SELECT_LIST_ID;
     integranteUl.className = 'selectable-list';
-    const currentFilteredIntegrantes = newRecordIntegranteSearchText.trim() === ''
-        ? [...integrantes].sort((a,b) => a.nombre.localeCompare(b.nombre)) // Uses already uppercase names
-        : integrantes.filter(inte => normalizeStringForComparison(inte.nombre).includes(normalizeStringForComparison(newRecordIntegranteSearchText)))
-                     .sort((a,b) => a.nombre.localeCompare(b.nombre));
+    _updateRecordIntegranteList(newRecordIntegranteSearchText); // Initial population
 
-    if (currentFilteredIntegrantes.length === 0 && newRecordIntegranteSearchText.trim() !== '') {
-        const noResultItem = document.createElement('li');
-        noResultItem.textContent = 'Ningún integrante coincide';
-        noResultItem.className = 'selectable-list-item disabled';
-        integranteUl.appendChild(noResultItem);
-    } else {
-        currentFilteredIntegrantes.forEach(integrante => {
-            const listItem = document.createElement('li');
-            listItem.className = 'selectable-list-item';
-            listItem.textContent = integrante.nombre; // Display uppercase name
-            listItem.onclick = () => {
-                newRecordIntegranteId = integrante.id;
-                newRecordIntegranteSelectedName = integrante.nombre;
-                focusTargetId = RECORD_INTEGRANTE_FILTER_INPUT_ID; // Keep focus for potential clearing
-                renderApp();
-            };
-            integranteUl.appendChild(listItem);
-        });
-    }
     integranteListWrapper.appendChild(integranteUl);
     integranteFilterGroup.appendChild(integranteListWrapper);
     form.appendChild(integranteFilterGroup);
@@ -1430,12 +1818,8 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     razonFilterInput.value = newRecordRazonSearchText;
     razonFilterInput.autocomplete = 'off';
     razonFilterInput.oninput = (e) => {
-        const mainArea = document.getElementById('main-content-area');
-        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
-
         newRecordRazonSearchText = (e.target as HTMLInputElement).value;
-        focusTargetId = RECORD_RAZON_FILTER_INPUT_ID;
-        renderApp();
+        _updateRecordRazonList(newRecordRazonSearchText);
     };
     razonFilterGroup.appendChild(razonFilterLabel);
     razonFilterGroup.appendChild(razonFilterInput);
@@ -1443,31 +1827,10 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     const razonListWrapper = document.createElement('div');
     razonListWrapper.className = 'selectable-list-wrapper';
     const razonUl = document.createElement('ul');
+    razonUl.id = RECORD_RAZON_SELECT_LIST_ID;
     razonUl.className = 'selectable-list';
-    const currentFilteredRazones = newRecordRazonSearchText.trim() === ''
-        ? [...razones].sort((a,b) => a.descripcion.localeCompare(b.descripcion)) // Uses already uppercase descriptions
-        : razones.filter(raz => normalizeStringForComparison(raz.descripcion).includes(normalizeStringForComparison(newRecordRazonSearchText)))
-                   .sort((a,b) => a.descripcion.localeCompare(b.descripcion));
-
-    if (currentFilteredRazones.length === 0 && newRecordRazonSearchText.trim() !== '') {
-        const noResultItem = document.createElement('li');
-        noResultItem.textContent = 'Ninguna razón coincide';
-        noResultItem.className = 'selectable-list-item disabled';
-        razonUl.appendChild(noResultItem);
-    } else {
-        currentFilteredRazones.forEach(razon => {
-            const listItem = document.createElement('li');
-            listItem.className = 'selectable-list-item';
-            listItem.textContent = razon.descripcion; // Display uppercase description
-            listItem.onclick = () => {
-                newRecordRazonId = razon.id;
-                newRecordRazonSelectedDescripcion = razon.descripcion;
-                focusTargetId = RECORD_RAZON_FILTER_INPUT_ID; // Keep focus for potential clearing
-                renderApp();
-            };
-            razonUl.appendChild(listItem);
-        });
-    }
+    _updateRecordRazonList(newRecordRazonSearchText); // Initial population
+    
     razonListWrapper.appendChild(razonUl);
     razonFilterGroup.appendChild(razonListWrapper);
     form.appendChild(razonFilterGroup);
@@ -1798,7 +2161,7 @@ function parseFlexibleDate(dateString: string): string | null {
             }
         }
     }
-    
+
     // Try YYYY-M-D or YYYY-MM-D or YYYY-M-DD (less strict YYYY-MM-DD)
     if (dateString.includes('-')) {
         const parts = dateString.split('-');
@@ -1853,7 +2216,7 @@ function handleImportFinancialRecordsCSVFile(event: Event) {
         const headerLine = lines[0];
         const headersFromCsv = parseCsvLine(headerLine).map(h => normalizeStringForComparison(h));
         const expectedHeadersNormalized = ['FECHA', 'INTEGRANTE', 'MOVIMIENTO', 'RAZON', 'DESCRIPCION DETALLADA', 'MONTO'].map(normalizeStringForComparison);
-        
+
         const headerMap: { [key: string]: number } = {};
         headersFromCsv.forEach((h, i) => headerMap[h] = i);
 
@@ -1878,7 +2241,7 @@ function handleImportFinancialRecordsCSVFile(event: Event) {
 
         for (let i = 1; i < lines.length; i++) {
             const values = parseCsvLine(lines[i]);
-            if (values.length < expectedHeadersNormalized.length) { 
+            if (values.length < expectedHeadersNormalized.length) {
                 console.warn(`Fila ${i+1} (registros) omitida: número incorrecto de columnas. Esperadas ${expectedHeadersNormalized.length}, obtenidas ${values.length}. Contenido: ${lines[i]}`);
                 skippedCount++;
                 continue;
@@ -1925,14 +2288,14 @@ function handleImportFinancialRecordsCSVFile(event: Event) {
             }
 
             let razonId: number | null = null;
-            let finalRazon: {id: number, descripcion: string} | undefined = undefined;
+            let finalRazon: Razon | undefined = undefined;
 
             const normalizedCsvRazon = normalizeStringForComparison(csvRazonDescripcionUpper);
             finalRazon = razones.find(raz => normalizeStringForComparison(raz.descripcion) === normalizedCsvRazon);
 
             if (!finalRazon) {
                  // Auto-create new razon if not found after normalization
-                const newRazon = { id: nextReasonId++, descripcion: csvRazonDescripcionUpper };
+                const newRazon: Razon = { id: nextReasonId++, descripcion: csvRazonDescripcionUpper, isQuickReason: false };
                 razones.push(newRazon);
                 // saveRazonesToLocalStorage(); // Save after batch processing
                 finalRazon = newRazon;
@@ -1962,7 +2325,7 @@ function handleImportFinancialRecordsCSVFile(event: Event) {
         if (newRecordsBatch.length > 0) {
              let currentBatchNextId = tempNextIdForImport;
             newRecordsBatch.forEach(record => {
-                record.id = currentBatchNextId++; 
+                record.id = currentBatchNextId++;
                 financialRecords.push(record);
                 importedCount++;
             });
@@ -1983,7 +2346,7 @@ function handleImportFinancialRecordsCSVFile(event: Event) {
         fileInput.value = '';
     };
 
-    reader.readAsText(file); 
+    reader.readAsText(file);
 }
 
 function handleExportRazonesCSV() {
@@ -1991,12 +2354,13 @@ function handleExportRazonesCSV() {
         alert('No hay razones para exportar.');
         return;
     }
-    const headers = ['ID', 'Descripcion'];
+    const headers = ['ID', 'Descripcion', 'EsRapida'];
     const csvRows = [headers.join(',')];
     razones.forEach(razon => {
         const row = [
             escapeCsvValue(razon.id),
-            escapeCsvValue(razon.descripcion)
+            escapeCsvValue(razon.descripcion),
+            escapeCsvValue(razon.isQuickReason)
         ];
         csvRows.push(row.join(','));
     });
@@ -2020,7 +2384,7 @@ function handleImportRazonesCSVFile(event: Event) {
         if (!text) { alert('El archivo CSV de razones está vacío.'); fileInput.value = ''; return; }
 
         const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
-        if (lines.length < 1) { 
+        if (lines.length < 1) {
             alert('El archivo CSV de razones no contiene datos válidos.'); fileInput.value = ''; return;
         }
 
@@ -2028,12 +2392,14 @@ function handleImportRazonesCSVFile(event: Event) {
         const headersFromCsv = parseCsvLine(headerLine).map(h => normalizeStringForComparison(h));
         const idColIdx = headersFromCsv.indexOf('ID');
         const descColIdx = headersFromCsv.indexOf('DESCRIPCION');
+        const isQuickColIdx = headersFromCsv.indexOf('ESRAPIDA');
 
-        if (descColIdx === -1) { 
+
+        if (descColIdx === -1) {
             alert(`Encabezado requerido 'descripcion' no encontrado en el CSV de razones. Encontrados: ${headersFromCsv.join(', ')}`);
             fileInput.value = ''; return;
         }
-        
+
         if (razonImportMode === 'replace') {
             razones = [];
             nextReasonId = 1;
@@ -2045,11 +2411,14 @@ function handleImportRazonesCSVFile(event: Event) {
 
         for (let i = 1; i < lines.length; i++) {
             const values = parseCsvLine(lines[i]);
-             if (values.length <= descColIdx && (idColIdx === -1 || values.length <= idColIdx) ) { 
+             if (values.length <= descColIdx && (idColIdx === -1 || values.length <= idColIdx) ) {
                 console.warn(`Fila ${i+1} (razones) omitida: Muy pocas columnas. Contenido: ${lines[i]}`);
                 skippedCount++; continue;
             }
             const rawDesc = values[descColIdx]?.trim().toUpperCase();
+            const rawIsQuick = (isQuickColIdx !== -1 && values.length > isQuickColIdx) ? values[isQuickColIdx]?.trim().toLowerCase() : 'false';
+            const isQuickReason = rawIsQuick === 'true' || rawIsQuick === 'verdadero';
+
 
             if (!rawDesc) {
                 console.warn(`Fila ${i+1} (razones) omitida: Descripción está vacía.`);
@@ -2073,20 +2442,26 @@ function handleImportRazonesCSVFile(event: Event) {
             const existingRazonByDesc = razones.find(r => normalizeStringForComparison(r.descripcion) === normalizedRawDesc && (existingRazonById ? r.id !== existingRazonById.id : true));
 
 
-            if (existingRazonById) { 
-                if (existingRazonById.descripcion !== rawDesc) { 
+            if (existingRazonById) {
+                let changed = false;
+                if (existingRazonById.descripcion !== rawDesc) {
                     if (razones.some(r => r.id !== csvId && normalizeStringForComparison(r.descripcion) === normalizedRawDesc)) {
                         console.warn(`Fila ${i+1} (razones) omitida: Nueva descripción '${rawDesc}' para ID ${csvId} ya existe con otro ID.`);
                         skippedCount++;
-                    } else {
-                        existingRazonById.descripcion = rawDesc; 
-                        updatedCount++;
+                        continue; // Skip this iteration
                     }
-                } 
-            } else if (existingRazonByDesc) { 
+                    existingRazonById.descripcion = rawDesc;
+                    changed = true;
+                }
+                if (existingRazonById.isQuickReason !== isQuickReason) {
+                    existingRazonById.isQuickReason = isQuickReason;
+                    changed = true;
+                }
+                if (changed) updatedCount++;
+            } else if (existingRazonByDesc) {
                 console.warn(`Fila ${i+1} (razones) omitida: Descripción '${rawDesc}' ya existe (ID en CSV: ${csvIdStr || 'N/A'}, ID de existente: ${existingRazonByDesc.id}). No se puede asignar nuevo ID si descripción ya existe.`);
                 skippedCount++;
-            } else { 
+            } else {
                  let newIdToUse = csvId;
                  if (newIdToUse === null || razones.some(r => r.id === newIdToUse)) { // If no CSV ID or CSV ID is already taken
                      newIdToUse = tempNextReasonIdForImport++;
@@ -2095,13 +2470,13 @@ function handleImportRazonesCSVFile(event: Event) {
                      }
                  }
 
-                razones.push({ id: newIdToUse, descripcion: rawDesc });
+                razones.push({ id: newIdToUse, descripcion: rawDesc, isQuickReason: isQuickReason });
                 tempNextReasonIdForImport = Math.max(tempNextReasonIdForImport, newIdToUse + 1);
                 importedCount++;
             }
         }
         if (importedCount > 0 || updatedCount > 0) {
-             saveRazonesToLocalStorage(); 
+             saveRazonesToLocalStorage();
         } else if (razonImportMode === 'replace' && importedCount === 0 && updatedCount === 0) {
             // If replace mode and nothing was imported/updated, ensure localStorage is also cleared
             saveRazonesToLocalStorage();
@@ -2114,6 +2489,126 @@ function handleImportRazonesCSVFile(event: Event) {
     reader.readAsText(file);
 }
 
+function _updateRazonesManagementList(searchTerm: string, sortOrder: typeof razonesSortOrder) {
+    const ul = document.getElementById(RAZONES_LIST_CONTAINER_ID) as HTMLUListElement;
+    if (!ul) return;
+    ul.innerHTML = '';
+
+    let filteredRazones = razones.filter(razon =>
+        normalizeStringForComparison(razon.descripcion).includes(normalizeStringForComparison(searchTerm))
+    );
+
+    const sortedRazones = [...filteredRazones];
+    switch (sortOrder) {
+        case 'id_asc': sortedRazones.sort((a, b) => a.id - b.id); break;
+        case 'id_desc': sortedRazones.sort((a, b) => b.id - a.id); break;
+        case 'alpha_asc': sortedRazones.sort((a, b) => a.descripcion.localeCompare(b.descripcion)); break;
+        case 'alpha_desc': sortedRazones.sort((a, b) => b.descripcion.localeCompare(a.descripcion)); break;
+    }
+
+    sortedRazones.forEach(razon => {
+        const listItem = document.createElement('li');
+        listItem.className = 'razon-item';
+        if (editingReasonId === razon.id) {
+            const editInput = document.createElement('input');
+            editInput.setAttribute('type', 'text');
+            editInput.className = 'razon-input';
+            editInput.value = editReasonInputText; // This should be from a state variable that's updated on input
+            const EDIT_INPUT_ID = `edit-razon-${razon.id}`; // This ID needs to be unique if multiple edits are possible (not current design)
+            editInput.id = EDIT_INPUT_ID;
+            editInput.oninput = (e) => editReasonInputText = (e.target as HTMLInputElement).value; // Update state on input
+
+            const saveButton = document.createElement('button');
+            saveButton.textContent = 'Guardar';
+            saveButton.className = 'nav-button action-button-inline success-button';
+            saveButton.onclick = () => { // This logic remains the same, it calls renderApp
+                const trimmedEditText = editReasonInputText.trim().toUpperCase();
+                if (trimmedEditText) {
+                    if (razones.some(r => normalizeStringForComparison(r.descripcion) === normalizeStringForComparison(trimmedEditText) && r.id !== razon.id)) {
+                        alert('Ya existe otra razón con esta descripción.'); return;
+                    }
+                    const index = razones.findIndex(r => r.id === razon.id);
+                    if (index !== -1) {
+                        razones[index].descripcion = trimmedEditText;
+                        saveRazonesToLocalStorage();
+                    }
+                    editingReasonId = null;
+                    focusTargetId = null; 
+                    renderApp();
+                } else {
+                     alert('La descripción no puede estar vacía.');
+                }
+            };
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'Cancelar';
+            cancelButton.className = 'nav-button action-button-inline danger-button';
+            cancelButton.onclick = () => { // This logic also remains the same
+                editingReasonId = null;
+                focusTargetId = null;
+                renderApp();
+            };
+            listItem.appendChild(editInput); listItem.appendChild(saveButton); listItem.appendChild(cancelButton);
+            // We need to ensure focus is managed if an edit input is created dynamically
+            // but for now, the primary goal is to fix the search input.
+            // If editInput is focused, typing in it won't cause renderApp().
+        } else {
+            const textSpan = document.createElement('span');
+            textSpan.className = 'razon-text';
+            textSpan.textContent = `${razon.id}. ${razon.descripcion}`;
+
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'list-item-actions';
+
+            const toggleQuickIconButton = document.createElement('button');
+            toggleQuickIconButton.className = `icon-button quick-toggle-icon-button${razon.isQuickReason ? ' active' : ''}`;
+            toggleQuickIconButton.title = razon.isQuickReason ? 'Desactivar de Rápido' : 'Activar para Rápido';
+            toggleQuickIconButton.innerHTML = ICONS.quick;
+            toggleQuickIconButton.setAttribute('aria-label', toggleQuickIconButton.title);
+            toggleQuickIconButton.onclick = () => { // This calls renderApp()
+                const mainArea = document.getElementById('main-content-area');
+                if (mainArea) mainContentScrollTop = mainArea.scrollTop;
+                focusTargetId = null;
+                const targetRazon = razones.find(r => r.id === razon.id);
+                if (targetRazon) {
+                    targetRazon.isQuickReason = !targetRazon.isQuickReason;
+                    saveRazonesToLocalStorage();
+                    renderApp();
+                }
+            };
+
+            const editButton = document.createElement('button');
+            editButton.innerHTML = ICONS.edit;
+            editButton.className = 'icon-button edit-icon-button';
+            editButton.setAttribute('aria-label', 'Editar Razón');
+            editButton.onclick = () => { // This calls renderApp()
+                editingReasonId = razon.id;
+                editReasonInputText = razon.descripcion;
+                renderApp(); // This will re-render the list item in edit mode
+            };
+            const deleteButton = document.createElement('button');
+            deleteButton.innerHTML = ICONS.delete;
+            deleteButton.className = 'icon-button delete-icon-button';
+            deleteButton.setAttribute('aria-label', 'Eliminar Razón');
+            deleteButton.onclick = () => { // This calls renderApp()
+                 if (financialRecords.some(fr => fr.razonId === razon.id)) {
+                    alert(`No se puede eliminar la razón "${razon.descripcion}" porque está siendo utilizada en registros financieros.`); return;
+                }
+                if (window.confirm(`¿Está seguro de que desea eliminar la razón "${razon.descripcion}" (ID: ${razon.id})?`)) {
+                    razones = razones.filter(r => r.id !== razon.id);
+                    saveRazonesToLocalStorage();
+                    if (editingReasonId === razon.id) editingReasonId = null;
+                    renderApp();
+                }
+            };
+            actionsContainer.appendChild(toggleQuickIconButton);
+            actionsContainer.appendChild(editButton);
+            actionsContainer.appendChild(deleteButton);
+            listItem.appendChild(textSpan);
+            listItem.appendChild(actionsContainer);
+        }
+        ul.appendChild(listItem);
+    });
+}
 
 function renderRazonesScreen(parentElement: HTMLElement): void {
     const header = document.createElement('h2');
@@ -2185,17 +2680,10 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
     searchInput.className = 'razon-input search-razon-input';
     searchInput.id = RAZON_SEARCH_INPUT_ID;
     searchInput.value = razonesSearchTerm;
+    searchInput.autocomplete = 'off';
     searchInput.oninput = (e) => {
-        const mainArea = document.getElementById('main-content-area');
-        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
-
-        const inputElement = e.target as HTMLInputElement;
-        razonesSearchTerm = inputElement.value;
-        focusTargetId = RAZON_SEARCH_INPUT_ID;
-        renderApp();
-    };
-    searchInput.onfocus = () => { // Keep this in case user just clicks in
-        focusTargetId = RAZON_SEARCH_INPUT_ID;
+        razonesSearchTerm = (e.target as HTMLInputElement).value;
+        _updateRazonesManagementList(razonesSearchTerm, razonesSortOrder);
     };
     searchContainer.appendChild(searchInput);
     parentElement.appendChild(searchContainer);
@@ -2219,11 +2707,16 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
                 alert('Esta razón ya existe.');
                 return;
             }
-            razones.push({ id: nextReasonId++, descripcion: trimmedText });
-            saveRazonesToLocalStorage();
+            razones.push({ id: nextReasonId++, descripcion: trimmedText, isQuickReason: false });
+            saveRazonesToLocalStorage(); // This calls updateQuickRazonesAvailable and setDefaultQuickRecordRazonId
             newReasonInputText = '';
-            editingReasonId = null;
-            razonesSearchTerm = ''; // Optionally clear search after adding
+            editingReasonId = null; 
+            // razonesSearchTerm = ''; // Clearing search term also
+            // _updateRazonesManagementList(razonesSearchTerm, razonesSortOrder); // Update list after adding
+            // No, renderApp is better here to reset input value and update list via full render
+            const mainArea = document.getElementById('main-content-area');
+            if(mainArea) mainContentScrollTop = mainArea.scrollTop;
+            focusTargetId = RAZON_SEARCH_INPUT_ID; // Focus back on search or the add input
             renderApp();
         } else {
             alert('La descripción no puede estar vacía.');
@@ -2246,7 +2739,7 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
     sortSelect.value = razonesSortOrder;
     sortSelect.onchange = (e) => {
         razonesSortOrder = (e.target as HTMLSelectElement).value as typeof razonesSortOrder;
-        renderApp();
+        _updateRazonesManagementList(razonesSearchTerm, razonesSortOrder); // Update list on sort change
     };
 
     const sortOptions = [
@@ -2268,113 +2761,12 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
     parentElement.appendChild(sortContainer);
 
 
-    const listContainer = document.createElement('ul');
-    listContainer.className = 'razones-list';
-    let filteredRazones = razones.filter(razon =>
-        normalizeStringForComparison(razon.descripcion).includes(normalizeStringForComparison(razonesSearchTerm))
-    );
-
-    const sortedRazones = [...filteredRazones];
-    switch (razonesSortOrder) {
-        case 'id_asc':
-            sortedRazones.sort((a, b) => a.id - b.id);
-            break;
-        case 'id_desc':
-            sortedRazones.sort((a, b) => b.id - a.id);
-            break;
-        case 'alpha_asc':
-            sortedRazones.sort((a, b) => a.descripcion.localeCompare(b.descripcion));
-            break;
-        case 'alpha_desc':
-            sortedRazones.sort((a, b) => b.descripcion.localeCompare(a.descripcion));
-            break;
-    }
-
-
-    sortedRazones.forEach(razon => {
-        const listItem = document.createElement('li');
-        listItem.className = 'razon-item';
-        if (editingReasonId === razon.id) {
-            const editInput = document.createElement('input');
-            editInput.setAttribute('type', 'text');
-            editInput.className = 'razon-input';
-            editInput.value = editReasonInputText; 
-            editInput.oninput = (e) => editReasonInputText = (e.target as HTMLInputElement).value;
-            const EDIT_INPUT_ID = `edit-razon-${razon.id}`;
-            editInput.id = EDIT_INPUT_ID;
-            
-
-            const saveButton = document.createElement('button');
-            saveButton.textContent = 'Guardar';
-            saveButton.className = 'nav-button action-button-inline success-button';
-            saveButton.onclick = () => {
-                const trimmedEditText = editReasonInputText.trim().toUpperCase();
-                if (trimmedEditText) {
-                    if (razones.some(r => normalizeStringForComparison(r.descripcion) === normalizeStringForComparison(trimmedEditText) && r.id !== razon.id)) {
-                        alert('Ya existe otra razón con esta descripción.');
-                        return;
-                    }
-                    const index = razones.findIndex(r => r.id === razon.id);
-                    if (index !== -1) {
-                        razones[index].descripcion = trimmedEditText;
-                        saveRazonesToLocalStorage();
-                    }
-                    editingReasonId = null;
-                    focusTargetId = null; // Clear focus target after successful save
-                    renderApp();
-                } else {
-                     alert('La descripción no puede estar vacía.');
-                }
-            };
-            const cancelButton = document.createElement('button');
-            cancelButton.textContent = 'Cancelar';
-            cancelButton.className = 'nav-button action-button-inline danger-button';
-            cancelButton.onclick = () => {
-                editingReasonId = null;
-                focusTargetId = null; // Clear focus target
-                renderApp();
-            };
-            listItem.appendChild(editInput); listItem.appendChild(saveButton); listItem.appendChild(cancelButton);
-            // Set focus *after* element is in DOM (handled by global focusTargetId mechanism in renderApp)
-            focusTargetId = EDIT_INPUT_ID; 
-        } else {
-            const textSpan = document.createElement('span');
-            textSpan.className = 'razon-text';
-            textSpan.textContent = `${razon.id}. ${razon.descripcion}`;
-            const actionsContainer = document.createElement('div');
-            actionsContainer.className = 'list-item-actions';
-            const editButton = document.createElement('button');
-            editButton.innerHTML = ICONS.edit;
-            editButton.className = 'icon-button edit-icon-button';
-            editButton.setAttribute('aria-label', 'Editar Razón');
-            editButton.onclick = () => {
-                editingReasonId = razon.id;
-                editReasonInputText = razon.descripcion; 
-                // Focus will be set to the edit input in the next render cycle by focusTargetId mechanism
-                renderApp(); 
-            };
-            const deleteButton = document.createElement('button');
-            deleteButton.innerHTML = ICONS.delete;
-            deleteButton.className = 'icon-button delete-icon-button';
-            deleteButton.setAttribute('aria-label', 'Eliminar Razón');
-            deleteButton.onclick = () => {
-                 if (financialRecords.some(fr => fr.razonId === razon.id)) {
-                    alert(`No se puede eliminar la razón "${razon.descripcion}" porque está siendo utilizada en registros financieros.`);
-                    return;
-                }
-                if (window.confirm(`¿Está seguro de que desea eliminar la razón "${razon.descripcion}" (ID: ${razon.id})?`)) {
-                    razones = razones.filter(r => r.id !== razon.id);
-                    saveRazonesToLocalStorage();
-                    if (editingReasonId === razon.id) editingReasonId = null;
-                    renderApp();
-                }
-            };
-            actionsContainer.appendChild(editButton); actionsContainer.appendChild(deleteButton);
-            listItem.appendChild(textSpan); listItem.appendChild(actionsContainer);
-        }
-        listContainer.appendChild(listItem);
-    });
-    parentElement.appendChild(listContainer);
+    const listContainerUL = document.createElement('ul');
+    listContainerUL.id = RAZONES_LIST_CONTAINER_ID;
+    listContainerUL.className = 'razones-list';
+    _updateRazonesManagementList(razonesSearchTerm, razonesSortOrder); // Initial population
+    
+    parentElement.appendChild(listContainerUL);
 }
 
 function handleExportIntegrantesCSV() {
@@ -2427,12 +2819,12 @@ function handleImportIntegrantesCSVFile(event: Event) {
 
         if (integranteImportMode === 'replace') {
             integrantes = [];
-            nextIntegranteId = 1; 
+            nextIntegranteId = 1;
         }
 
         let importedCount = 0, updatedCount = 0, skippedCount = 0;
         let tempNextIntegranteIdForImport = integrantes.length > 0 ? Math.max(0, ...integrantes.map(i => i.id)) + 1 : 1;
-        
+
         const protectedIdsToPreserveOrUpdate = [
             { id: 1, defaultName: "LOS FORASTEROS" },
             { id: 2, defaultName: "INVITADOS" }
@@ -2490,8 +2882,8 @@ function handleImportIntegrantesCSVFile(event: Event) {
             const existingIntegranteByName = integrantes.find(inte => normalizeStringForComparison(inte.nombre) === normalizedRawName && (existingIntegranteById ? inte.id !== existingIntegranteById.id : true));
 
 
-            if (existingIntegranteById) { 
-                if (existingIntegranteById.nombre !== rawName) { 
+            if (existingIntegranteById) {
+                if (existingIntegranteById.nombre !== rawName) {
                     if (integrantes.some(inte => inte.id !== csvId && normalizeStringForComparison(inte.nombre) === normalizedRawName)) {
                         console.warn(`Fila ${i+1} (integrantes) omitida: Nuevo nombre '${rawName}' para ID ${csvId} ya existe con otro ID.`);
                         skippedCount++;
@@ -2500,15 +2892,15 @@ function handleImportIntegrantesCSVFile(event: Event) {
                              console.warn(`Fila ${i+1} (integrantes): No se puede asignar un nombre vacío al integrante protegido ID ${existingIntegranteById.id}. Se mantiene nombre actual.`);
                              skippedCount++;
                         } else {
-                            existingIntegranteById.nombre = rawName; 
+                            existingIntegranteById.nombre = rawName;
                             updatedCount++;
                         }
                     }
-                } 
-            } else if (existingIntegranteByName) { 
+                }
+            } else if (existingIntegranteByName) {
                 console.warn(`Fila ${i+1} (integrantes) omitida: Nombre '${rawName}' ya existe (ID en CSV: ${csvIdStr || 'N/A'}, ID de existente: ${existingIntegranteByName.id}). No se puede asignar nuevo ID si nombre ya existe.`);
                 skippedCount++;
-            } else { 
+            } else {
                 let newIdToUse = csvId;
                  if (newIdToUse === null || integrantes.some(inte => inte.id === newIdToUse)) {
                      newIdToUse = tempNextIntegranteIdForImport++;
@@ -2526,13 +2918,13 @@ function handleImportIntegrantesCSVFile(event: Event) {
                 }
             }
         }
-        
+
         if (integranteImportMode === 'replace') {
              protectedIdsToPreserveOrUpdate.forEach(p => {
                 const existing = integrantes.find(inte => inte.id === p.id);
                 if (!existing) {
                     integrantes.push({id: p.id, nombre: p.defaultName});
-                    importedCount++; 
+                    importedCount++;
                 } else if (existing.nombre === '') { // If CSV tried to make it blank
                     existing.nombre = p.defaultName; // Restore default name
                     updatedCount++;
@@ -2542,7 +2934,7 @@ function handleImportIntegrantesCSVFile(event: Event) {
 
 
         if (importedCount > 0 || updatedCount > 0) {
-            saveIntegrantesToLocalStorage(); 
+            saveIntegrantesToLocalStorage();
         } else if (integranteImportMode === 'replace' && importedCount === 0 && updatedCount === 0) {
              saveIntegrantesToLocalStorage();
         }
@@ -2555,6 +2947,112 @@ function handleImportIntegrantesCSVFile(event: Event) {
     reader.readAsText(file);
 }
 
+function _updateIntegrantesManagementList(searchTerm: string, sortOrder: typeof integrantesSortOrder) {
+    const ul = document.getElementById(INTEGRANTES_LIST_CONTAINER_ID) as HTMLUListElement;
+    if (!ul) return;
+    ul.innerHTML = '';
+
+    let filteredIntegrantes = integrantes.filter(integrante =>
+        normalizeStringForComparison(integrante.nombre).includes(normalizeStringForComparison(searchTerm))
+    );
+
+    const sortedIntegrantes = [...filteredIntegrantes];
+    switch (sortOrder) {
+        case 'id_asc': sortedIntegrantes.sort((a, b) => a.id - b.id); break;
+        case 'id_desc': sortedIntegrantes.sort((a, b) => b.id - a.id); break;
+        case 'alpha_asc': sortedIntegrantes.sort((a, b) => a.nombre.localeCompare(b.nombre)); break;
+        case 'alpha_desc': sortedIntegrantes.sort((a, b) => b.nombre.localeCompare(a.nombre)); break;
+    }
+
+    sortedIntegrantes.forEach(integrante => {
+        const listItem = document.createElement('li');
+        listItem.className = 'razon-item'; // Re-use item style
+        if (editingIntegranteId === integrante.id) {
+            const editInput = document.createElement('input');
+            editInput.setAttribute('type', 'text');
+            editInput.className = 'razon-input'; // Re-use class
+            editInput.value = editIntegranteInputText; // Should be state-managed
+            const EDIT_INPUT_ID = `edit-integrante-${integrante.id}`;
+            editInput.id = EDIT_INPUT_ID;
+            editInput.oninput = (e) => editIntegranteInputText = (e.target as HTMLInputElement).value;
+
+
+            const saveButton = document.createElement('button');
+            saveButton.textContent = 'Guardar';
+            saveButton.className = 'nav-button action-button-inline success-button';
+            saveButton.onclick = () => { // Calls renderApp
+                const trimmedEditText = editIntegranteInputText.trim().toUpperCase();
+                 if ((integrante.id === 1 || integrante.id === 2) && trimmedEditText === "") {
+                    alert(`El integrante "${integrante.nombre}" es un sistema y no puede tener un nombre vacío.`); return;
+                }
+                if (trimmedEditText) {
+                    if (integrantes.some(i => normalizeStringForComparison(i.nombre) === normalizeStringForComparison(trimmedEditText) && i.id !== integrante.id)) {
+                        alert('Ya existe otro integrante con este nombre.'); return;
+                    }
+                    const index = integrantes.findIndex(i => i.id === integrante.id);
+                    if (index !== -1) {
+                        integrantes[index].nombre = trimmedEditText;
+                        saveIntegrantesToLocalStorage();
+                    }
+                    editingIntegranteId = null;
+                    focusTargetId = null;
+                    renderApp();
+                } else {
+                     alert('El nombre no puede estar vacío.');
+                }
+            };
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'Cancelar';
+            cancelButton.className = 'nav-button action-button-inline danger-button';
+            cancelButton.onclick = () => { // Calls renderApp
+                editingIntegranteId = null;
+                focusTargetId = null;
+                renderApp();
+            };
+            listItem.appendChild(editInput); listItem.appendChild(saveButton); listItem.appendChild(cancelButton);
+        } else {
+            const textSpan = document.createElement('span');
+            textSpan.className = 'razon-text'; // Re-use class
+            textSpan.textContent = `${integrante.id}. ${integrante.nombre}`;
+
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'list-item-actions'; // Re-use class
+
+            const editButton = document.createElement('button');
+            editButton.innerHTML = ICONS.edit;
+            editButton.className = 'icon-button edit-icon-button'; // Re-use classes
+            editButton.setAttribute('aria-label', 'Editar Integrante');
+            editButton.onclick = () => { // Calls renderApp
+                editingIntegranteId = integrante.id;
+                editIntegranteInputText = integrante.nombre;
+                renderApp();
+            };
+            actionsContainer.appendChild(editButton);
+
+            if (integrante.id !== 1 && integrante.id !== 2) {
+                const deleteButton = document.createElement('button');
+                deleteButton.innerHTML = ICONS.delete;
+                deleteButton.className = 'icon-button delete-icon-button'; // Re-use classes
+                deleteButton.setAttribute('aria-label', 'Eliminar Integrante');
+                deleteButton.onclick = () => { // Calls renderApp
+                    if (financialRecords.some(fr => fr.integranteId === integrante.id)) {
+                        alert(`No se puede eliminar al integrante "${integrante.nombre}" porque está siendo utilizado en registros financieros.`); return;
+                    }
+                    if (window.confirm(`¿Está seguro de que desea eliminar al integrante "${integrante.nombre}" (ID: ${integrante.id})?`)) {
+                        integrantes = integrantes.filter(i => i.id !== integrante.id);
+                        saveIntegrantesToLocalStorage();
+                        if (editingIntegranteId === integrante.id) editingIntegranteId = null;
+                        renderApp();
+                    }
+                };
+                actionsContainer.appendChild(deleteButton);
+            }
+            listItem.appendChild(textSpan);
+            listItem.appendChild(actionsContainer);
+        }
+        ul.appendChild(listItem);
+    });
+}
 
 function renderIntegrantesScreen(parentElement: HTMLElement): void {
     const header = document.createElement('h2');
@@ -2628,17 +3126,10 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     searchInput.className = 'razon-input search-razon-input'; // Re-use razon-input class for styling consistency
     searchInput.id = INTEGRANTE_SEARCH_INPUT_ID;
     searchInput.value = integrantesSearchTerm;
+    searchInput.autocomplete = 'off';
     searchInput.oninput = (e) => {
-        const mainArea = document.getElementById('main-content-area');
-        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
-
-        const inputElement = e.target as HTMLInputElement;
-        integrantesSearchTerm = inputElement.value;
-        focusTargetId = INTEGRANTE_SEARCH_INPUT_ID; // Set focus target before re-render
-        renderApp();
-    };
-    searchInput.onfocus = () => { // Keep this for focus persistence on click
-        focusTargetId = INTEGRANTE_SEARCH_INPUT_ID;
+        integrantesSearchTerm = (e.target as HTMLInputElement).value;
+        _updateIntegrantesManagementList(integrantesSearchTerm, integrantesSortOrder);
     };
     searchContainer.appendChild(searchInput);
     parentElement.appendChild(searchContainer);
@@ -2655,7 +3146,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     const addButton = document.createElement('button');
     addButton.textContent = 'Agregar Integrante';
     addButton.className = 'nav-button primary-button'; // Re-use button style
-    addButton.onclick = () => {
+    addButton.onclick = () => { // This calls renderApp
         const trimmedText = newIntegranteInputText.trim().toUpperCase();
         if (trimmedText) {
             if (integrantes.some(i => normalizeStringForComparison(i.nombre) === normalizeStringForComparison(trimmedText))) {
@@ -2666,7 +3157,11 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
             saveIntegrantesToLocalStorage();
             newIntegranteInputText = '';
             editingIntegranteId = null;
-            integrantesSearchTerm = ''; // Optionally clear search
+            // integrantesSearchTerm = ''; // Clear search
+            // _updateIntegrantesManagementList(integrantesSearchTerm, integrantesSortOrder); // Update list
+            const mainArea = document.getElementById('main-content-area');
+            if(mainArea) mainContentScrollTop = mainArea.scrollTop;
+            focusTargetId = INTEGRANTE_SEARCH_INPUT_ID;
             renderApp();
         } else {
             alert('El nombre no puede estar vacío.');
@@ -2689,7 +3184,7 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     sortSelect.value = integrantesSortOrder;
     sortSelect.onchange = (e) => {
         integrantesSortOrder = (e.target as HTMLSelectElement).value as typeof integrantesSortOrder;
-        renderApp();
+        _updateIntegrantesManagementList(integrantesSearchTerm, integrantesSortOrder); // Update list on sort change
     };
 
     const sortOptions = [
@@ -2711,124 +3206,16 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     parentElement.appendChild(sortContainer);
 
 
-    const listContainer = document.createElement('ul');
-    listContainer.className = 'razones-list'; // Re-use list style
-    let filteredIntegrantes = integrantes.filter(integrante =>
-        normalizeStringForComparison(integrante.nombre).includes(normalizeStringForComparison(integrantesSearchTerm))
-    );
-
-    const sortedIntegrantes = [...filteredIntegrantes];
-    switch (integrantesSortOrder) {
-        case 'id_asc':
-            sortedIntegrantes.sort((a, b) => a.id - b.id);
-            break;
-        case 'id_desc':
-            sortedIntegrantes.sort((a, b) => b.id - a.id);
-            break;
-        case 'alpha_asc':
-            sortedIntegrantes.sort((a, b) => a.nombre.localeCompare(b.nombre));
-            break;
-        case 'alpha_desc':
-            sortedIntegrantes.sort((a, b) => b.nombre.localeCompare(a.nombre));
-            break;
-    }
-
-    sortedIntegrantes.forEach(integrante => {
-        const listItem = document.createElement('li');
-        listItem.className = 'razon-item'; // Re-use item style
-        if (editingIntegranteId === integrante.id) {
-            const editInput = document.createElement('input');
-            editInput.setAttribute('type', 'text');
-            editInput.className = 'razon-input';
-            editInput.value = editIntegranteInputText; 
-            editInput.oninput = (e) => editIntegranteInputText = (e.target as HTMLInputElement).value;
-            const EDIT_INPUT_ID = `edit-integrante-${integrante.id}`;
-            editInput.id = EDIT_INPUT_ID;
-            
-
-            const saveButton = document.createElement('button');
-            saveButton.textContent = 'Guardar';
-            saveButton.className = 'nav-button action-button-inline success-button';
-            saveButton.onclick = () => {
-                const trimmedEditText = editIntegranteInputText.trim().toUpperCase();
-                if (trimmedEditText) {
-                    if (integrantes.some(i => normalizeStringForComparison(i.nombre) === normalizeStringForComparison(trimmedEditText) && i.id !== integrante.id)) {
-                        alert('Ya existe otro integrante con este nombre.');
-                        return;
-                    }
-                     if ((integrante.id === 1 || integrante.id === 2) && trimmedEditText === "") {
-                        alert(`El integrante "${integrante.nombre}" es un sistema y no puede tener un nombre vacío.`);
-                        return;
-                    }
-                    const index = integrantes.findIndex(i => i.id === integrante.id);
-                    if (index !== -1) {
-                        integrantes[index].nombre = trimmedEditText;
-                        saveIntegrantesToLocalStorage();
-                    }
-                    editingIntegranteId = null;
-                    focusTargetId = null; // Clear focus target after save
-                    renderApp();
-                } else {
-                     if (integrante.id === 1 || integrante.id === 2) {
-                        alert(`El integrante "${integrante.nombre}" es un sistema y no puede tener un nombre vacío.`);
-                     } else {
-                        alert('El nombre no puede estar vacío.');
-                     }
-                }
-            };
-            const cancelButton = document.createElement('button');
-            cancelButton.textContent = 'Cancelar';
-            cancelButton.className = 'nav-button action-button-inline danger-button';
-            cancelButton.onclick = () => {
-                editingIntegranteId = null;
-                focusTargetId = null; // Clear focus target
-                renderApp();
-            };
-            listItem.appendChild(editInput); listItem.appendChild(saveButton); listItem.appendChild(cancelButton);
-            focusTargetId = EDIT_INPUT_ID; // Set focus for the next render
-        } else {
-            const textSpan = document.createElement('span');
-            textSpan.className = 'razon-text';
-            textSpan.textContent = `${integrante.id}. ${integrante.nombre}`;
-            const actionsContainer = document.createElement('div');
-            actionsContainer.className = 'list-item-actions';
-            const editButton = document.createElement('button');
-            editButton.innerHTML = ICONS.edit;
-            editButton.className = 'icon-button edit-icon-button';
-            editButton.setAttribute('aria-label', 'Editar Integrante');
-            editButton.onclick = () => {
-                editingIntegranteId = integrante.id;
-                editIntegranteInputText = integrante.nombre; 
-                renderApp(); // Focus will be handled by focusTargetId mechanism in next render
-            };
-            const deleteButton = document.createElement('button');
-            deleteButton.innerHTML = ICONS.delete;
-            deleteButton.className = 'icon-button delete-icon-button';
-            deleteButton.setAttribute('aria-label', 'Eliminar Integrante');
-            deleteButton.onclick = () => {
-                if (integrante.id === 1 || integrante.id === 2) {
-                     alert(`El integrante "${integrante.nombre}" (ID: ${integrante.id}) es un sistema y no puede ser eliminado.`);
-                     return;
-                }
-                if (financialRecords.some(fr => fr.integranteId === integrante.id)) {
-                    alert(`No se puede eliminar al integrante "${integrante.nombre}" porque está referenciado en registros financieros.`);
-                    return;
-                }
-                if (window.confirm(`¿Está seguro de que desea eliminar al integrante "${integrante.nombre}" (ID: ${integrante.id})?`)) {
-                    integrantes = integrantes.filter(i => i.id !== integrante.id);
-                    saveIntegrantesToLocalStorage();
-                     if (editingIntegranteId === integrante.id) editingIntegranteId = null;
-                    renderApp();
-                }
-            };
-            actionsContainer.appendChild(editButton); actionsContainer.appendChild(deleteButton);
-            listItem.appendChild(textSpan); listItem.appendChild(actionsContainer);
-        }
-        listContainer.appendChild(listItem);
-    });
-    parentElement.appendChild(listContainer);
+    const listContainerUL = document.createElement('ul');
+    listContainerUL.id = INTEGRANTES_LIST_CONTAINER_ID;
+    listContainerUL.className = 'razones-list'; // Re-use list style
+    _updateIntegrantesManagementList(integrantesSearchTerm, integrantesSortOrder); // Initial population
+    
+    parentElement.appendChild(listContainerUL);
 }
 
-// Initial load
+
+// Initialize theme
 loadTheme();
+// Initial render
 renderApp();

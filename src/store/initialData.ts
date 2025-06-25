@@ -1,0 +1,77 @@
+
+import { Razon, Integrante, FinancialQuote } from '../types';
+
+export const initialRazonesData: Razon[] = [
+    { id: 1,  descripcion: "SEMANAL" },
+    { id: 2,  descripcion: "MENSUALIDAD" },
+    { id: 3,  descripcion: "APORTE EXTRA" },
+    { id: 4,  descripcion: "NEVERITA" },
+    { id: 5,  descripcion: "BOTELLON" },
+    { id: 6,  descripcion: "AGUA" },
+    { id: 7,  descripcion: "HIELO" },
+    { id: 8,  descripcion: "MALLA" },
+    { id: 9,  descripcion: "BOLA BASKET" },
+    { id: 10, descripcion: "PITO (SILBATO)" },
+    { id: 11, descripcion: "JARRON DE AGUA" },
+    { id: 12, descripcion: "PITILLO" },
+    { id: 13, descripcion: "VASO PLASTICOS" },
+    { id: 14, descripcion: "MEDIDOR DE PRESION" },
+    { id: 15, descripcion: "ARBITRO (PITO)" },
+    { id: 16, descripcion: "TERMOS PERSONALIZADOS" },
+    { id: 17, descripcion: "MEDALLAS" },
+    { id: 18, descripcion: "TORNEO NAVIDEÑO 2023" },
+    { id: 19, descripcion: "COMBUSTIBLE" },
+    { id: 20, descripcion: "TERMO DE AGUA GRANDE" },
+    { id: 21, descripcion: "SUAPE Y ESCOBA" },
+    { id: 22, descripcion: "1ER UNIFORME REVERSIBLE SUBLIMADO" },
+    { id: 23, descripcion: "MARCADORES (PARA LA PIZARRA)" },
+    { id: 24, descripcion: "APP ESTADISTICAS (mensualidad)" },
+    { id: 25, descripcion: "FORMULARIO ESTADISTICAS" },
+    { id: 26, descripcion: "BOLETAS VOTACION CAPITANES" },
+    { id: 27, descripcion: "DONACIONES" },
+    { id: 28, descripcion: "ALQUILAR CANCHA" },
+    { id: 29, descripcion: "TORNEO ANIVERSARIO 2024" },
+    { id: 30, descripcion: "REFRIGERIO" },
+    { id: 31, descripcion: "CRONOMETRO" },
+    { id: 32, descripcion: "CORCHA (ESPONJA)" },
+    { id: 33, descripcion: "FOGUEO" },
+    { id: 34, descripcion: "FARDOS DE AGUA" },
+    { id: 35, descripcion: "CERVEZAS ONE" },
+    { id: 36, descripcion: "TRANSPORTE" },
+    { id: 37, descripcion: "ACTIVIDAD FIN DE AÑO 2024" },
+    { id: 38, descripcion: "INYECCION DE CAPITAL" },
+    { id: 39, descripcion: "REPOSICION DE CAPITAL" },
+    { id: 40, descripcion: "TORNEO ANIVERSARIO 2025" }
+];
+
+export const initialIntegrantesData: Integrante[] = [
+    { id: 1, nombre: "LOS FORASTEROS" }, { id: 2, nombre: "INVITADOS" }, { id: 3, nombre: "EUDDY VALDEZ" },
+    { id: 4, nombre: "WANDY VALDEZ" }, { id: 5, nombre: "ROLANDO VALDEZ" }, { id: 6, nombre: "ROANTONY VALDEZ" },
+    { id: 7, nombre: "ROBERT FABIAN" }, { id: 8, nombre: "MICHAEL VALDEZ" }, { id: 9, nombre: "JUNIOR VALDEZ" },
+    { id: 10, nombre: "ROBERTO" }, { id: 11, nombre: "FRANCISCO VALDEZ" }, { id: 12, nombre: "FRANCK VALDEZ" },
+    { id: 13, nombre: "MAICOL DE LA CRUZ" }, { id: 14, nombre: "EDWIN BATISTA" }, { id: 15, nombre: "FRANCISCO LANTIGUA" },
+    { id: 16, nombre: "ELIU RAVELO" }, { id: 17, nombre: "FÉLIX VALLEJO" }, { id: 18, nombre: "ALBHERT ABREU" },
+    { id: 19, nombre: "JESE SANCHEZ" }, { id: 20, nombre: "GERALD TAVERAS" }, { id: 21, nombre: "BRAYDOL BRITO" },
+    { id: 22, nombre: "SAMUEL FIGUEROA" }, { id: 23, nombre: "ALLENDY LOPEZ" }, { id: 24, nombre: "CARLOS DE LOS SANTOS" },
+    { id: 25, nombre: "SIASVINKY SOSA" }, { id: 26, nombre: "HENRY CONCEPCION" }, { id: 27, nombre: "PIERO" },
+    { id: 28, nombre: "OSWALDO" }, { id: 29, nombre: "WILKIN GARCÍAS" }, { id: 30, nombre: "MISAEL MEDRANO" },
+    { id: 31, nombre: "HANSEL BREA" }, { id: 32, nombre: "CARMELO CAPELLÁN" }, { id: 33, nombre: "BENJAMIN FRANCISCO" },
+    { id: 34, nombre: "FRANKELY VARGAS (Frandy)" }, { id: 35, nombre: "FRANKELY GUERRERO" }, { id: 36, nombre: "RAINIER SANTANA" },
+    { id: 37, nombre: "BRIS" }, { id: 38, nombre: "BRAYLIN HERNANDEZ" }, { id: 39, nombre: "JOSE ANGEL EL BARON" },
+    { id: 40, nombre: "DARWIN MICHELL" }, { id: 41, nombre: "ARIEL FIGUEROA" }, { id: 42, nombre: "LEBRON (JOSE LUIS)" },
+    { id: 43, nombre: "WALO" }, { id: 44, nombre: "DARIEL" }, { id: 45, nombre: "DAINER" }, { id: 46, nombre: "FIDEL" },
+    { id: 47, nombre: "ISMAEL - EL PERRO" }, { id: 48, nombre: "JOSTIN" }, { id: 49, nombre: "IVAN" },
+    { id: 50, nombre: "CHINO" }, { id: 51, nombre: "ALEX" }, { id: 52, nombre: "KABRA" }, { id: 53, nombre: "RUSO" },
+    { id: 54, nombre: "EIRCK" }, { id: 55, nombre: "NATHANAEL" }
+];
+
+export const financialQuotes: FinancialQuote[] = [
+    { text: "No ahorres lo que te queda después de gastar, gasta lo que te queda después de ahorrar.", author: "Warren Buffett" },
+    { text: "El dinero es un amo terrible pero un excelente sirviente.", author: "P.T. Barnum" },
+    { text: "La inversión en conocimiento paga el mejor interés.", author: "Benjamin Franklin" },
+    { text: "Cuida de los pequeños gastos; un pequeño agujero hunde un barco.", author: "Benjamin Franklin" },
+    { text: "Demasiadas personas gastan dinero que no han ganado, para comprar cosas que no quieren, para impresionar a personas que no les caen bien.", author: "Will Rogers" },
+    { text: "La regla No. 1 es no perder dinero. La regla No. 2 es no olvidar la Regla No. 1.", author: "Warren Buffett"},
+    { text: "Una finanza personal sana empieza por gastar menos de lo que ganas.", author: "Anónimo"},
+    { text: "El presupuesto es decirle a tu dinero a dónde ir, en lugar de preguntarte a dónde se fue.", author: "Dave Ramsey"}
+];
