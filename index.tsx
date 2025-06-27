@@ -1,5 +1,3 @@
-
-
 import { GoogleGenAI } from "@google/genai"; // Added for potential future use, not used in this iteration.
 
 interface Razon {
@@ -1187,16 +1185,20 @@ function renderQuickRecordScreen(parentElement: HTMLElement): void {
         handleAddQuickRecord();
     };
 
-    // Fecha (Display only for now)
+    // Fecha (Now editable)
     const fechaGroup = document.createElement('div');
     fechaGroup.className = 'form-group';
     const fechaLabel = document.createElement('label');
+    fechaLabel.setAttribute('for', 'quick-record-fecha');
     fechaLabel.textContent = 'Fecha:';
-    const fechaDisplay = document.createElement('p');
-    fechaDisplay.className = 'form-input-display'; // For styling like an input but not editable
-    fechaDisplay.textContent = new Date(quickRecordFecha).toLocaleDateString('es-DO', { year: 'numeric', month: 'long', day: 'numeric' });
+    const fechaInput = document.createElement('input');
+    fechaInput.type = 'date';
+    fechaInput.id = 'quick-record-fecha';
+    fechaInput.className = 'form-input';
+    fechaInput.value = quickRecordFecha;
+    fechaInput.onchange = (e) => quickRecordFecha = (e.target as HTMLInputElement).value;
     fechaGroup.appendChild(fechaLabel);
-    fechaGroup.appendChild(fechaDisplay);
+    fechaGroup.appendChild(fechaInput);
     form.appendChild(fechaGroup);
 
     // Razón Select
@@ -1362,7 +1364,7 @@ function handleAddQuickRecord() {
     quickRecordIntegranteSelectedName = '';
     quickRecordIntegranteSearchText = '';
     quickRecordMovimiento = 'INGRESOS';
-    // quickRecordFecha = new Date().toISOString().split('T')[0]; // Keep current date or update if necessary
+    // quickRecordFecha is not reset, to allow multiple entries for the same day easily
     setDefaultQuickRecordRazonId(); // Set default based on availability
 
 
@@ -1639,6 +1641,57 @@ function _updateRecordRazonList(searchTerm: string) {
     }
 }
 
+function getFilteredAndSortedRecords() {
+    let displayRecords = [...financialRecords];
+    const normalizedFilterText = normalizeStringForComparison(recordFilterText);
+
+    if (normalizedFilterText) {
+        displayRecords = displayRecords.filter(record => {
+            let fieldValue: string | undefined = ''; 
+            const integrante = integrantes.find(i => i.id === record.integranteId);
+            const razon = razones.find(r => r.id === record.razonId);
+
+            switch (recordFilterField) {
+                case 'fecha': fieldValue = record.fecha; break;
+                case 'integrante': fieldValue = integrante ? integrante.nombre : ''; break;
+                case 'movimiento': fieldValue = record.movimiento; break;
+                case 'razon': fieldValue = razon ? razon.descripcion : ''; break;
+                case 'descripcion': fieldValue = record.descripcion; break;
+                default: return false; 
+            }
+            return normalizeStringForComparison(fieldValue).includes(normalizedFilterText);
+        });
+    }
+    
+    return displayRecords.sort((a,b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime() || b.id - a.id);
+}
+
+function populateRecordsTableBody(tbody: HTMLTableSectionElement) {
+    tbody.innerHTML = '';
+    const recordsToDisplay = getFilteredAndSortedRecords();
+
+    recordsToDisplay.forEach(record => {
+        const tr = document.createElement('tr');
+        const integrante = integrantes.find(i => i.id === record.integranteId);
+        const razon = razones.find(r => r.id === record.razonId);
+
+        const cells = [
+            record.fecha,
+            integrante ? integrante.nombre : 'Desconocido',
+            record.movimiento.charAt(0) + record.movimiento.slice(1).toLowerCase(),
+            razon ? razon.descripcion : 'Desconocido',
+            record.descripcion,
+            `RD$${record.monto.toLocaleString('es-DO', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        ];
+        cells.forEach(cellText => {
+            const td = document.createElement('td');
+            td.textContent = cellText;
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+}
+
 
 function renderRecordsScreen(parentElement: HTMLElement): void {
     const header = document.createElement('h1');
@@ -1838,15 +1891,30 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     descripcionGroup.className = 'form-group';
     const descripcionLabel = document.createElement('label');
     descripcionLabel.setAttribute('for', 'record-descripcion');
-    descripcionLabel.textContent = 'Descripción/Detalles:';
-    const descripcionTextarea = document.createElement('textarea');
-    descripcionTextarea.id = 'record-descripcion';
-    descripcionTextarea.className = 'form-input';
-    descripcionTextarea.rows = 3;
-    descripcionTextarea.value = newRecordDescripcion;
-    descripcionTextarea.oninput = (e) => newRecordDescripcion = (e.target as HTMLTextAreaElement).value;
+    descripcionLabel.textContent = 'Descripción/Detalles (con sugerencias):';
+    
+    const uniqueDescriptions = Array.from(new Set(financialRecords.map(r => r.descripcion?.trim()).filter(Boolean)));
+    
+    const descripcionInput = document.createElement('input');
+    descripcionInput.type = 'text';
+    descripcionInput.id = 'record-descripcion';
+    descripcionInput.className = 'form-input';
+    descripcionInput.setAttribute('list', 'descripcion-suggestions');
+    descripcionInput.placeholder = 'Escriba para ver sugerencias...';
+    descripcionInput.value = newRecordDescripcion;
+    descripcionInput.oninput = (e) => newRecordDescripcion = (e.target as HTMLInputElement).value;
+    
+    const datalist = document.createElement('datalist');
+    datalist.id = 'descripcion-suggestions';
+    uniqueDescriptions.forEach(desc => {
+        const option = document.createElement('option');
+        option.value = desc;
+        datalist.appendChild(option);
+    });
+
     descripcionGroup.appendChild(descripcionLabel);
-    descripcionGroup.appendChild(descripcionTextarea);
+    descripcionGroup.appendChild(descripcionInput);
+    descripcionGroup.appendChild(datalist);
     form.appendChild(descripcionGroup);
 
     const montoGroup = document.createElement('div');
@@ -1886,13 +1954,9 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     const filterFieldSelect = document.createElement('select');
     filterFieldSelect.id = RECORD_FILTER_FIELD_SELECT_ID;
     filterFieldSelect.className = 'form-input';
-    // The value will be set after options are populated, or by setting .selected on options
     filterFieldSelect.onchange = (e) => {
-        const mainArea = document.getElementById('main-content-area');
-        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
-
         recordFilterField = (e.target as HTMLSelectElement).value as RecordFilterField;
-        focusTargetId = RECORD_FILTER_FIELD_SELECT_ID; // Keep focus on select after change
+        // Re-render is acceptable here as it's not a keystroke event
         renderApp();
     };
 
@@ -1909,12 +1973,10 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
         option.value = opt.value;
         option.textContent = opt.text;
         if (recordFilterField === opt.value) {
-            option.selected = true; // Ensure correct option is visually selected
+            option.selected = true; 
         }
         filterFieldSelect.appendChild(option);
     });
-    // It's also good practice to set the select's value directly after populating options,
-    // though `option.selected = true` should handle it.
     filterFieldSelect.value = recordFilterField;
 
 
@@ -1933,14 +1995,13 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     filterTextInput.className = 'form-input';
     filterTextInput.placeholder = 'Escriba para filtrar...';
     filterTextInput.value = recordFilterText;
-    filterTextInput.autocomplete = 'off'; // Added for better mobile UX
+    filterTextInput.autocomplete = 'off';
     filterTextInput.oninput = (e) => {
-        const mainArea = document.getElementById('main-content-area');
-        if (mainArea) mainContentScrollTop = mainArea.scrollTop;
-
         recordFilterText = (e.target as HTMLInputElement).value;
-        focusTargetId = RECORD_FILTER_TEXT_INPUT_ID;
-        renderApp();
+        const tbody = document.querySelector('.records-table tbody');
+        if (tbody) {
+            populateRecordsTableBody(tbody as HTMLTableSectionElement);
+        }
     };
     filterTextGroup.appendChild(filterTextLabel);
     filterTextGroup.appendChild(filterTextInput);
@@ -1965,48 +2026,7 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
-    let displayRecords = [...financialRecords];
-    const normalizedFilterText = normalizeStringForComparison(recordFilterText);
-
-    if (normalizedFilterText) {
-        displayRecords = displayRecords.filter(record => {
-            let fieldValue: string | undefined = ''; // Initialize to handle cases where field might not be found or is null
-            const integrante = integrantes.find(i => i.id === record.integranteId);
-            const razon = razones.find(r => r.id === record.razonId);
-
-            switch (recordFilterField) {
-                case 'fecha': fieldValue = record.fecha; break;
-                case 'integrante': fieldValue = integrante ? integrante.nombre : ''; break;
-                case 'movimiento': fieldValue = record.movimiento; break;
-                case 'razon': fieldValue = razon ? razon.descripcion : ''; break;
-                case 'descripcion': fieldValue = record.descripcion; break;
-                default: return false; // Should ideally not be reached if recordFilterField is always valid
-            }
-            return normalizeStringForComparison(fieldValue).includes(normalizedFilterText);
-        });
-    }
-
-
-    displayRecords.sort((a,b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime() || b.id - a.id).forEach(record => {
-        const tr = document.createElement('tr');
-        const integrante = integrantes.find(i => i.id === record.integranteId);
-        const razon = razones.find(r => r.id === record.razonId);
-
-        const cells = [
-            record.fecha,
-            integrante ? integrante.nombre : 'Desconocido', // Display uppercase name
-            record.movimiento.charAt(0) + record.movimiento.slice(1).toLowerCase(),
-            razon ? razon.descripcion : 'Desconocido', // Display uppercase description
-            record.descripcion,
-            `RD$${record.monto.toLocaleString('es-DO', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-        ];
-        cells.forEach(cellText => {
-            const td = document.createElement('td');
-            td.textContent = cellText;
-            tr.appendChild(td);
-        });
-        tbody.appendChild(tr);
-    });
+    populateRecordsTableBody(tbody); // Use helper for initial population
     table.appendChild(tbody);
     tableContainer.appendChild(table);
     parentElement.appendChild(tableContainer);
@@ -2499,7 +2519,7 @@ function _updateRazonesManagementList(searchTerm: string, sortOrder: typeof razo
     const sortedRazones = [...filteredRazones];
     switch (sortOrder) {
         case 'id_asc': sortedRazones.sort((a, b) => a.id - b.id); break;
-        case 'id_desc': sortedRazones.sort((a, b) => b.id - a.id); break;
+        case 'id_desc': sortedRazones.sort((a, b) => b.id - b.id); break;
         case 'alpha_asc': sortedRazones.sort((a, b) => a.descripcion.localeCompare(b.descripcion)); break;
         case 'alpha_desc': sortedRazones.sort((a, b) => b.descripcion.localeCompare(a.descripcion)); break;
     }
@@ -2957,7 +2977,7 @@ function _updateIntegrantesManagementList(searchTerm: string, sortOrder: typeof 
     const sortedIntegrantes = [...filteredIntegrantes];
     switch (sortOrder) {
         case 'id_asc': sortedIntegrantes.sort((a, b) => a.id - b.id); break;
-        case 'id_desc': sortedIntegrantes.sort((a, b) => b.id - a.id); break;
+        case 'id_desc': sortedIntegrantes.sort((a, b) => b.id - b.id); break;
         case 'alpha_asc': sortedIntegrantes.sort((a, b) => a.nombre.localeCompare(b.nombre)); break;
         case 'alpha_desc': sortedIntegrantes.sort((a, b) => b.nombre.localeCompare(a.nombre)); break;
     }
