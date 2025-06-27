@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI } from "@google/genai"; // Added for potential future use, not used in this iteration.
 
 interface Razon {
@@ -442,6 +443,7 @@ function renderApp(): void {
 
     const mainContentElement = document.createElement('div');
     mainContentElement.id = 'main-content-area';
+    appRoot.appendChild(mainContentElement);
 
     if (currentView === 'dashboard') {
         renderDashboardScreen(mainContentElement);
@@ -457,7 +459,6 @@ function renderApp(): void {
         renderIntegrantesScreen(mainContentElement);
     }
 
-    appRoot.appendChild(mainContentElement);
     renderBottomNavigation(appRoot);
 
     const currentMainContentArea = document.getElementById('main-content-area');
@@ -1287,13 +1288,12 @@ function renderQuickRecordScreen(parentElement: HTMLElement): void {
     integranteUl.id = QUICK_RECORD_INTEGRANTE_SELECT_LIST_ID;
     integranteUl.className = 'selectable-list';
     
-    // Initial population of the list (will be updated by _updateQuickRecordIntegranteList on input)
-     _updateQuickRecordIntegranteList(quickRecordIntegranteSearchText);
-
-
     integranteListWrapper.appendChild(integranteUl);
     integranteFilterGroup.appendChild(integranteListWrapper);
     form.appendChild(integranteFilterGroup);
+    
+    // Initial population of the list
+    _updateQuickRecordIntegranteList(quickRecordIntegranteSearchText);
 
 
     // Movimiento Select
@@ -1762,11 +1762,10 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     const integranteUl = document.createElement('ul');
     integranteUl.id = RECORD_INTEGRANTE_SELECT_LIST_ID;
     integranteUl.className = 'selectable-list';
-    _updateRecordIntegranteList(newRecordIntegranteSearchText); // Initial population
-
     integranteListWrapper.appendChild(integranteUl);
     integranteFilterGroup.appendChild(integranteListWrapper);
     form.appendChild(integranteFilterGroup);
+    _updateRecordIntegranteList(newRecordIntegranteSearchText); // Initial population
 
 
     const movimientoGroup = document.createElement('div');
@@ -1829,11 +1828,10 @@ function renderRecordsScreen(parentElement: HTMLElement): void {
     const razonUl = document.createElement('ul');
     razonUl.id = RECORD_RAZON_SELECT_LIST_ID;
     razonUl.className = 'selectable-list';
-    _updateRecordRazonList(newRecordRazonSearchText); // Initial population
-    
     razonListWrapper.appendChild(razonUl);
     razonFilterGroup.appendChild(razonListWrapper);
     form.appendChild(razonFilterGroup);
+    _updateRecordRazonList(newRecordRazonSearchText); // Initial population
 
 
     const descripcionGroup = document.createElement('div');
@@ -2764,9 +2762,9 @@ function renderRazonesScreen(parentElement: HTMLElement): void {
     const listContainerUL = document.createElement('ul');
     listContainerUL.id = RAZONES_LIST_CONTAINER_ID;
     listContainerUL.className = 'razones-list';
-    _updateRazonesManagementList(razonesSearchTerm, razonesSortOrder); // Initial population
-    
     parentElement.appendChild(listContainerUL);
+    
+    _updateRazonesManagementList(razonesSearchTerm, razonesSortOrder); // Initial population
 }
 
 function handleExportIntegrantesCSV() {
@@ -3209,9 +3207,9 @@ function renderIntegrantesScreen(parentElement: HTMLElement): void {
     const listContainerUL = document.createElement('ul');
     listContainerUL.id = INTEGRANTES_LIST_CONTAINER_ID;
     listContainerUL.className = 'razones-list'; // Re-use list style
-    _updateIntegrantesManagementList(integrantesSearchTerm, integrantesSortOrder); // Initial population
-    
     parentElement.appendChild(listContainerUL);
+    
+    _updateIntegrantesManagementList(integrantesSearchTerm, integrantesSortOrder); // Initial population
 }
 
 
