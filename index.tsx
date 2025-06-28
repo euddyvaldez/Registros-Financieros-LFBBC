@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai"; // Added for potential future use, not used in this iteration.
 
 interface Razon {
@@ -2101,7 +2102,7 @@ function handleExportFinancialRecordsCSV() {
         return;
     }
 
-    const headers = ['Fecha', 'Integrante', 'Movimiento', 'Razon', 'Descripcion Detallada', 'Monto'];
+    const headers = ['FECHA', 'INTEGRANTE', 'MOVIMIENTO', 'RAZON', 'DESCRIPCION DETALLADA', 'MONTO'];
     const csvRows = [headers.join(',')];
 
     financialRecords.forEach(record => {
@@ -2372,7 +2373,7 @@ function handleExportRazonesCSV() {
         alert('No hay razones para exportar.');
         return;
     }
-    const headers = ['ID', 'Descripcion', 'EsRapida'];
+    const headers = ['ID', 'DESCRIPCION', 'ESRAPIDA'];
     const csvRows = [headers.join(',')];
     razones.forEach(razon => {
         const row = [
@@ -2792,7 +2793,7 @@ function handleExportIntegrantesCSV() {
         alert('No hay integrantes para exportar.');
         return;
     }
-    const headers = ['ID', 'Nombre'];
+    const headers = ['ID', 'NOMBRE'];
     const csvRows = [headers.join(',')];
     integrantes.forEach(integrante => {
         const row = [
