@@ -207,11 +207,16 @@ let mainContentScrollTop: number | null = null; // For scroll preservation
 
 // --- Dashboard Chart State (now for Financial Panel) ---
 type DashboardViewType = 'annual_summary' | 'monthly_trend' | 'daily_trend';
+type FinancialPanelFilterMode = 'predefined' | 'custom';
+let financialPanelFilterMode: FinancialPanelFilterMode = 'predefined';
 let dashboardViewType: DashboardViewType = 'monthly_trend';
 let dashboardSelectedYear: number | 'all_available' = 'all_available';
 let dashboardSelectedMonth: number = new Date().getMonth() + 1; // 1-12, used for daily_trend
 type FinancialPanelChartType = 'line' | 'bar' | 'pie';
 let financialPanelChartType: FinancialPanelChartType = 'line';
+let financialPanelStartDate: string = '';
+let financialPanelEndDate: string = '';
+let financialPanelDefaultsSet = false;
 
 
 // --- Financial Quotes State ---
@@ -335,6 +340,15 @@ const ICONS = {
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
     `
 };
+
+function preserveScrollAndRender() {
+    const mainArea = document.getElementById('main-content-area');
+    if (mainArea) {
+        mainContentScrollTop = mainArea.scrollTop;
+    }
+    focusTargetId = null;
+    renderApp();
+}
 
 const CHART_COLORS = {
     ingresos: '#4CAF50', // Green
@@ -608,6 +622,37 @@ interface ProcessedChartDataPoint {
 }
 
 function getProcessedChartData(): ProcessedChartDataPoint[] {
+    if (financialPanelFilterMode === 'custom') {
+        if (!financialPanelStartDate || !financialPanelEndDate) return [];
+        
+        const recordsInRange = financialRecords.filter(r => r.fecha >= financialPanelStartDate && r.fecha <= financialPanelEndDate);
+        const dailyData: { [date: string]: ProcessedChartDataPoint } = {};
+        
+        const start = new Date(financialPanelStartDate + 'T12:00:00Z');
+        const end = new Date(financialPanelEndDate + 'T12:00:00Z');
+        let current = new Date(start);
+
+        if (start > end) return [];
+
+        while (current <= end) {
+            const dateStr = current.toISOString().split('T')[0];
+            const dayLabel = `${current.getUTCDate()}/${MONTH_NAMES_ES[current.getUTCMonth()]}`;
+            dailyData[dateStr] = { label: dayLabel, ingresos: 0, gastos: 0, inversion: 0 };
+            current.setUTCDate(current.getUTCDate() + 1);
+        }
+
+        recordsInRange.forEach(r => {
+            const recordDateStr = r.fecha; // Assumes YYYY-MM-DD
+            if (dailyData[recordDateStr]) {
+                 if (r.movimiento === 'INGRESOS') dailyData[recordDateStr].ingresos += r.monto;
+                 else if (r.movimiento === 'GASTOS') dailyData[recordDateStr].gastos += Math.abs(r.monto);
+                 else if (r.movimiento === 'INVERSION') dailyData[recordDateStr].inversion += Math.abs(r.monto);
+            }
+        });
+        return Object.values(dailyData);
+    }
+    
+    // --- Pre-defined filter logic ---
     let recordsToProcess = financialRecords;
 
     if (dashboardViewType === 'annual_summary') {
@@ -618,8 +663,8 @@ function getProcessedChartData(): ProcessedChartDataPoint[] {
                 yearlyData[year] = { label: String(year), ingresos: 0, gastos: 0, inversion: 0 };
             }
             if (r.movimiento === 'INGRESOS') yearlyData[year].ingresos += r.monto;
-            else if (r.movimiento === 'GASTOS') yearlyData[year].gastos += Math.abs(r.monto); // Ensure positive for chart
-            else if (r.movimiento === 'INVERSION') yearlyData[year].inversion += Math.abs(r.monto); // Ensure positive for chart
+            else if (r.movimiento === 'GASTOS') yearlyData[year].gastos += Math.abs(r.monto);
+            else if (r.movimiento === 'INVERSION') yearlyData[year].inversion += Math.abs(r.monto);
         });
         return Object.values(yearlyData).sort((a,b) => parseInt(a.label) - parseInt(b.label));
     }
@@ -642,8 +687,8 @@ function getProcessedChartData(): ProcessedChartDataPoint[] {
 
             if (yearToFilter === null || recordYear === yearToFilter) {
                 if (r.movimiento === 'INGRESOS') monthlyData[recordMonth].ingresos += r.monto;
-                else if (r.movimiento === 'GASTOS') monthlyData[recordMonth].gastos += Math.abs(r.monto); // Ensure positive for chart
-                else if (r.movimiento === 'INVERSION') monthlyData[recordMonth].inversion += Math.abs(r.monto); // Ensure positive for chart
+                else if (r.movimiento === 'GASTOS') monthlyData[recordMonth].gastos += Math.abs(r.monto);
+                else if (r.movimiento === 'INVERSION') monthlyData[recordMonth].inversion += Math.abs(r.monto);
             }
         });
         return Object.values(monthlyData);
@@ -666,8 +711,8 @@ function getProcessedChartData(): ProcessedChartDataPoint[] {
             if (recordDate.getFullYear() === yearToFilter && (recordDate.getMonth() + 1) === dashboardSelectedMonth) {
                 const day = recordDate.getDate();
                 if (r.movimiento === 'INGRESOS') dailyData[day].ingresos += r.monto;
-                else if (r.movimiento === 'GASTOS') dailyData[day].gastos += Math.abs(r.monto); // Ensure positive for chart
-                else if (r.movimiento === 'INVERSION') dailyData[day].inversion += Math.abs(r.monto); // Ensure positive for chart
+                else if (r.movimiento === 'GASTOS') dailyData[day].gastos += Math.abs(r.monto);
+                else if (r.movimiento === 'INVERSION') dailyData[day].inversion += Math.abs(r.monto);
             }
         });
         return Object.values(dailyData);
@@ -1380,6 +1425,36 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
     header.textContent = 'Panel Financiero';
     parentElement.appendChild(header);
 
+    if (!financialPanelDefaultsSet) {
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        financialPanelStartDate = firstDayOfMonth.toISOString().split('T')[0];
+        financialPanelEndDate = lastDayOfMonth.toISOString().split('T')[0];
+        financialPanelDefaultsSet = true;
+    }
+
+    let recordsForPanel: FinancialRecord[] = [];
+
+    if (financialPanelFilterMode === 'custom') {
+        if (financialPanelStartDate && financialPanelEndDate) {
+            recordsForPanel = financialRecords.filter(r => r.fecha >= financialPanelStartDate && r.fecha <= financialPanelEndDate);
+        }
+    } else {
+        let yearToFilter: number | null = typeof dashboardSelectedYear === 'number' ? dashboardSelectedYear : null;
+        if (dashboardViewType === 'annual_summary') {
+            recordsForPanel = financialRecords;
+        } else if (dashboardViewType === 'monthly_trend') {
+            recordsForPanel = yearToFilter !== null ? financialRecords.filter(r => new Date(r.fecha).getFullYear() === yearToFilter) : financialRecords;
+        } else if (dashboardViewType === 'daily_trend') {
+            recordsForPanel = yearToFilter !== null ? financialRecords.filter(r => {
+                const d = new Date(r.fecha);
+                return d.getFullYear() === yearToFilter && (d.getMonth() + 1) === dashboardSelectedMonth;
+            }) : [];
+        }
+    }
+
+
     const summaryCardsContainer = document.createElement('div');
     summaryCardsContainer.className = 'summary-cards-container';
 
@@ -1387,155 +1462,187 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
     let totalGastos = 0;
     let totalInversion = 0;
 
-    financialRecords.forEach(r => {
-        if (r.movimiento === 'INGRESOS') {
-            totalIngresos += r.monto;
-        } else if (r.movimiento === 'GASTOS') {
-            totalGastos += r.monto; // Stored as positive
-        } else if (r.movimiento === 'INVERSION') {
-            totalInversion += r.monto; // Stored as positive
-        }
+    recordsForPanel.forEach(r => {
+        if (r.movimiento === 'INGRESOS') totalIngresos += r.monto;
+        else if (r.movimiento === 'GASTOS') totalGastos += r.monto;
+        else if (r.movimiento === 'INVERSION') totalInversion += r.monto;
     });
 
     const balanceGeneral = totalIngresos + totalGastos + totalInversion;
 
-    summaryCardsContainer.appendChild(
-        renderSummaryCardComponent('Ingresos Totales', totalIngresos, 'RD$', 'summary-ingresos')
-    );
-    summaryCardsContainer.appendChild(
-        renderSummaryCardComponent('Gastos Totales', totalGastos, 'RD$', 'summary-gastos')
-    );
-    summaryCardsContainer.appendChild(
-        renderSummaryCardComponent('Inversión Total', totalInversion, 'RD$', 'summary-inversion')
-    );
-    summaryCardsContainer.appendChild(
-        renderSummaryCardComponent('Balance General', balanceGeneral, 'RD$', 'summary-balance')
-    );
+    summaryCardsContainer.appendChild(renderSummaryCardComponent('Ingresos del Período', totalIngresos, 'RD$', 'summary-ingresos'));
+    summaryCardsContainer.appendChild(renderSummaryCardComponent('Gastos del Período', totalGastos, 'RD$', 'summary-gastos'));
+    summaryCardsContainer.appendChild(renderSummaryCardComponent('Inversión del Período', totalInversion, 'RD$', 'summary-inversion'));
+    summaryCardsContainer.appendChild(renderSummaryCardComponent('Balance del Período', balanceGeneral, 'RD$', 'summary-balance'));
 
     parentElement.appendChild(summaryCardsContainer);
 
     const chartSectionCard = document.createElement('div');
     chartSectionCard.className = 'dashboard-section-card';
 
+    // Filter Mode Selector
+    const filterModeContainer = document.createElement('div');
+    filterModeContainer.className = 'chart-type-buttons-group';
+    (['predefined', 'custom'] as FinancialPanelFilterMode[]).forEach(mode => {
+        const button = document.createElement('button');
+        button.textContent = mode === 'predefined' ? 'Períodos Predefinidos' : 'Rango Personalizado';
+        button.className = 'chart-type-button';
+        if (financialPanelFilterMode === mode) button.classList.add('active');
+        button.onclick = () => {
+            financialPanelFilterMode = mode;
+            preserveScrollAndRender();
+        };
+        filterModeContainer.appendChild(button);
+    });
+    chartSectionCard.appendChild(filterModeContainer);
+
+
     const filtersContainer = document.createElement('div');
     filtersContainer.className = 'dashboard-filters-container';
 
-    const viewTypeGroup = document.createElement('div');
-    viewTypeGroup.className = 'filter-group';
-    const viewTypeLabel = document.createElement('label');
-    viewTypeLabel.setAttribute('for', 'dashboard-view-type');
-    viewTypeLabel.textContent = 'Tipo de Vista:';
-    const viewTypeSelect = document.createElement('select');
-    viewTypeSelect.id = 'dashboard-view-type';
-    viewTypeSelect.className = 'form-input';
-    viewTypeSelect.value = dashboardViewType;
-    viewTypeSelect.onchange = (e) => {
-        dashboardViewType = (e.target as HTMLSelectElement).value as DashboardViewType;
-        if (dashboardViewType === 'daily_trend' && dashboardSelectedYear === 'all_available') {
-            const available = getAvailableYearsForFilter(financialRecords).filter(y => typeof y === 'number') as number[];
-            dashboardSelectedYear = available.length > 0 ? available[0] : new Date().getFullYear();
-        }
-        renderApp();
-    };
-    [
-        { value: 'annual_summary', text: 'Resumen Anual (Todos los años)' },
-        { value: 'monthly_trend', text: 'Tendencia Mensual' },
-        { value: 'daily_trend', text: 'Tendencia Diaria' }
-    ].forEach(opt => {
-        const option = document.createElement('option');
-        option.value = opt.value;
-        option.textContent = opt.text;
-        viewTypeSelect.appendChild(option);
-    });
-    viewTypeGroup.appendChild(viewTypeLabel);
-    viewTypeGroup.appendChild(viewTypeSelect);
-    filtersContainer.appendChild(viewTypeGroup);
-    viewTypeSelect.value = dashboardViewType;
-
-    const yearGroup = document.createElement('div');
-    yearGroup.className = 'filter-group';
-    const yearLabel = document.createElement('label');
-    yearLabel.setAttribute('for', 'dashboard-year');
-    yearLabel.textContent = 'Año:';
-    const yearSelect = document.createElement('select');
-    yearSelect.id = 'dashboard-year';
-    yearSelect.className = 'form-input';
-
-    const availableYears = getAvailableYearsForFilter(financialRecords);
-    availableYears.forEach(year => {
-        const option = document.createElement('option');
-        option.value = String(year);
-        option.textContent = year === 'all_available' ? 'Todos los Años Disponibles' : String(year);
-        yearSelect.appendChild(option);
-    });
-
-    yearSelect.value = String(dashboardSelectedYear);
-    yearSelect.onchange = (e) => {
-        const val = (e.target as HTMLSelectElement).value;
-        const newSelectedYear = val === 'all_available' ? 'all_available' : parseInt(val, 10);
-
-        if (dashboardViewType === 'daily_trend' && newSelectedYear === 'all_available') {
-            const specificYears = getAvailableYearsForFilter(financialRecords).filter(y => typeof y === 'number') as number[];
-            dashboardSelectedYear = specificYears.length > 0 ? specificYears[0] : new Date().getFullYear();
-        } else {
-            dashboardSelectedYear = newSelectedYear;
-        }
-        renderApp();
-    };
-    yearGroup.appendChild(yearLabel);
-    yearGroup.appendChild(yearSelect);
-    if (dashboardViewType !== 'annual_summary') {
-         filtersContainer.appendChild(yearGroup);
-    }
-
-    if (dashboardViewType === 'daily_trend') {
-        const monthGroup = document.createElement('div');
-        monthGroup.className = 'filter-group';
-        const monthLabel = document.createElement('label');
-        monthLabel.setAttribute('for', 'dashboard-month');
-        monthLabel.textContent = 'Mes:';
-        const monthSelect = document.createElement('select');
-        monthSelect.id = 'dashboard-month';
-        monthSelect.className = 'form-input';
-
-        MONTH_NAMES_ES.forEach((name, index) => {
-            const option = document.createElement('option');
-            option.value = String(index + 1); // 1-12
-            option.textContent = name;
-            monthSelect.appendChild(option);
-        });
-        monthSelect.value = String(dashboardSelectedMonth);
-        monthSelect.onchange = (e) => {
-            dashboardSelectedMonth = parseInt((e.target as HTMLSelectElement).value, 10);
-            renderApp();
+    if (financialPanelFilterMode === 'predefined') {
+        const viewTypeGroup = document.createElement('div');
+        viewTypeGroup.className = 'filter-group';
+        const viewTypeLabel = document.createElement('label');
+        viewTypeLabel.setAttribute('for', 'dashboard-view-type');
+        viewTypeLabel.textContent = 'Tipo de Vista:';
+        const viewTypeSelect = document.createElement('select');
+        viewTypeSelect.id = 'dashboard-view-type';
+        viewTypeSelect.className = 'form-input';
+        viewTypeSelect.value = dashboardViewType;
+        viewTypeSelect.onchange = (e) => {
+            dashboardViewType = (e.target as HTMLSelectElement).value as DashboardViewType;
+            if (dashboardViewType === 'daily_trend' && dashboardSelectedYear === 'all_available') {
+                const available = getAvailableYearsForFilter(financialRecords).filter(y => typeof y === 'number') as number[];
+                dashboardSelectedYear = available.length > 0 ? available[0] : new Date().getFullYear();
+            }
+            preserveScrollAndRender();
         };
-        monthGroup.appendChild(monthLabel);
-        monthGroup.appendChild(monthSelect);
-        filtersContainer.appendChild(monthGroup);
+        [
+            { value: 'annual_summary', text: 'Resumen Anual (Todos los años)' },
+            { value: 'monthly_trend', text: 'Tendencia Mensual' },
+            { value: 'daily_trend', text: 'Tendencia Diaria' }
+        ].forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            viewTypeSelect.appendChild(option);
+        });
+        viewTypeGroup.appendChild(viewTypeLabel);
+        viewTypeGroup.appendChild(viewTypeSelect);
+        filtersContainer.appendChild(viewTypeGroup);
+        viewTypeSelect.value = dashboardViewType;
+
+        const yearGroup = document.createElement('div');
+        yearGroup.className = 'filter-group';
+        const yearLabel = document.createElement('label');
+        yearLabel.setAttribute('for', 'dashboard-year');
+        yearLabel.textContent = 'Año:';
+        const yearSelect = document.createElement('select');
+        yearSelect.id = 'dashboard-year';
+        yearSelect.className = 'form-input';
+
+        const availableYears = getAvailableYearsForFilter(financialRecords);
+        availableYears.forEach(year => {
+            const option = document.createElement('option');
+            option.value = String(year);
+            option.textContent = year === 'all_available' ? 'Todos los Años Disponibles' : String(year);
+            yearSelect.appendChild(option);
+        });
+
+        yearSelect.value = String(dashboardSelectedYear);
+        yearSelect.onchange = (e) => {
+            const val = (e.target as HTMLSelectElement).value;
+            const newSelectedYear = val === 'all_available' ? 'all_available' : parseInt(val, 10);
+            if (dashboardViewType === 'daily_trend' && newSelectedYear === 'all_available') {
+                const specificYears = getAvailableYearsForFilter(financialRecords).filter(y => typeof y === 'number') as number[];
+                dashboardSelectedYear = specificYears.length > 0 ? specificYears[0] : new Date().getFullYear();
+            } else {
+                dashboardSelectedYear = newSelectedYear;
+            }
+            preserveScrollAndRender();
+        };
+        yearGroup.appendChild(yearLabel);
+        yearGroup.appendChild(yearSelect);
+        if (dashboardViewType !== 'annual_summary') {
+             filtersContainer.appendChild(yearGroup);
+        }
+
+        if (dashboardViewType === 'daily_trend') {
+            const monthGroup = document.createElement('div');
+            monthGroup.className = 'filter-group';
+            const monthLabel = document.createElement('label');
+            monthLabel.setAttribute('for', 'dashboard-month');
+            monthLabel.textContent = 'Mes:';
+            const monthSelect = document.createElement('select');
+            monthSelect.id = 'dashboard-month';
+            monthSelect.className = 'form-input';
+            MONTH_NAMES_ES.forEach((name, index) => {
+                const option = document.createElement('option');
+                option.value = String(index + 1);
+                option.textContent = name;
+                monthSelect.appendChild(option);
+            });
+            monthSelect.value = String(dashboardSelectedMonth);
+            monthSelect.onchange = (e) => {
+                dashboardSelectedMonth = parseInt((e.target as HTMLSelectElement).value, 10);
+                preserveScrollAndRender();
+            };
+            monthGroup.appendChild(monthLabel);
+            monthGroup.appendChild(monthSelect);
+            filtersContainer.appendChild(monthGroup);
+        }
+    } else { // Custom range mode
+        const startDateGroup = document.createElement('div');
+        startDateGroup.className = 'filter-group';
+        const startDateLabel = document.createElement('label');
+        startDateLabel.textContent = 'Fecha de Inicio:';
+        const startDateInput = document.createElement('input');
+        startDateInput.type = 'date';
+        startDateInput.className = 'form-input';
+        startDateInput.value = financialPanelStartDate;
+        startDateInput.onchange = (e) => {
+            financialPanelStartDate = (e.target as HTMLInputElement).value;
+            preserveScrollAndRender();
+        };
+        startDateGroup.appendChild(startDateLabel);
+        startDateGroup.appendChild(startDateInput);
+        filtersContainer.appendChild(startDateGroup);
+
+        const endDateGroup = document.createElement('div');
+        endDateGroup.className = 'filter-group';
+        const endDateLabel = document.createElement('label');
+        endDateLabel.textContent = 'Fecha de Fin:';
+        const endDateInput = document.createElement('input');
+        endDateInput.type = 'date';
+        endDateInput.className = 'form-input';
+        endDateInput.value = financialPanelEndDate;
+        endDateInput.onchange = (e) => {
+            financialPanelEndDate = (e.target as HTMLInputElement).value;
+            preserveScrollAndRender();
+        };
+        endDateGroup.appendChild(endDateLabel);
+        endDateGroup.appendChild(endDateInput);
+        filtersContainer.appendChild(endDateGroup);
     }
     chartSectionCard.appendChild(filtersContainer);
 
-    // Chart Type Selector
     const chartTypeSelectorContainer = document.createElement('div');
     chartTypeSelectorContainer.className = 'chart-type-selector-container';
     const chartTypeLabel = document.createElement('p');
     chartTypeLabel.textContent = 'Seleccionar Tipo de Gráfico:';
     chartTypeLabel.className = 'chart-type-label';
     chartTypeSelectorContainer.appendChild(chartTypeLabel);
-
     const chartTypeButtonsGroup = document.createElement('div');
     chartTypeButtonsGroup.className = 'chart-type-buttons-group';
-
     (['line', 'bar', 'pie'] as FinancialPanelChartType[]).forEach(type => {
         const button = document.createElement('button');
         button.textContent = type.charAt(0).toUpperCase() + type.slice(1) + (type === 'pie' ? ' (Total)' : '');
         button.className = 'chart-type-button';
-        if (financialPanelChartType === type) {
-            button.classList.add('active');
-        }
+        if (financialPanelChartType === type) button.classList.add('active');
         button.onclick = () => {
             financialPanelChartType = type;
-            renderApp();
+            preserveScrollAndRender();
         };
         chartTypeButtonsGroup.appendChild(button);
     });
@@ -1546,9 +1653,8 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
     const chartContainer = document.createElement('div');
     chartContainer.className = 'dashboard-chart-container';
     chartSectionCard.appendChild(chartContainer);
-
     parentElement.appendChild(chartSectionCard);
-
+    
     const processedChartData = getProcessedChartData();
 
     if (financialPanelChartType === 'line') {
@@ -1556,20 +1662,11 @@ function renderFinancialPanelScreen(parentElement: HTMLElement): void {
     } else if (financialPanelChartType === 'bar') {
         renderBarChartSVG(chartContainer, processedChartData);
     } else if (financialPanelChartType === 'pie') {
-        let totalPeriodIngresos = 0;
-        let totalPeriodGastos = 0;
-        let totalPeriodInversion = 0;
-        processedChartData.forEach(dp => {
-            totalPeriodIngresos += dp.ingresos;
-            totalPeriodGastos += dp.gastos; // Already absolute from getProcessedChartData
-            totalPeriodInversion += dp.inversion; // Already absolute
-        });
         const pieChartDisplayData: PieChartSegment[] = [
-            { name: 'Ingresos', value: totalPeriodIngresos, color: CHART_COLORS.ingresos },
-            { name: 'Gastos', value: totalPeriodGastos, color: CHART_COLORS.gastos },
-            { name: 'Inversión', value: totalPeriodInversion, color: CHART_COLORS.inversion }
+            { name: 'Ingresos', value: totalIngresos, color: CHART_COLORS.ingresos },
+            { name: 'Gastos', value: Math.abs(totalGastos), color: CHART_COLORS.gastos },
+            { name: 'Inversión', value: Math.abs(totalInversion), color: CHART_COLORS.inversion }
         ].filter(segment => segment.value > 0);
-
         renderPieChartSVG(chartContainer, pieChartDisplayData);
     }
 }
